@@ -6,7 +6,7 @@ import edu.upc.epsevg.prop.hex.IPlayer;
 import edu.upc.epsevg.prop.hex.IPlayer;
 import edu.upc.epsevg.prop.hex.IPlayer;
 import edu.upc.epsevg.prop.hex.players.H_E_X_Player;
-
+import edu.upc.epsevg.prop.hex.players.MyPlayer;
 
 
 import javax.swing.SwingUtilities;
@@ -27,7 +27,9 @@ public class Game {
                 
                 IPlayer player1 = new H_E_X_Player(2/*GB*/);
                 
-                IPlayer player2 = new HumanPlayer("Human");
+                //IPlayer player2 = new HumanPlayer("Human");
+                
+                IPlayer player2 = new MyPlayer(4);
                                 
                 new Board(player1 , player2, 11 /*mida*/,  10/*s*/, false);
              }
