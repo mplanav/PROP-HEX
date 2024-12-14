@@ -25,6 +25,7 @@ public class MyPlayer implements IPlayer, IAuto{
     String name;
     public int maxDepth;
     public long exploredNodes;
+    boolean timeFlag = false;
     
     
     public MyPlayer(String name) {
@@ -67,7 +68,7 @@ public class MyPlayer implements IPlayer, IAuto{
 public PlayerMove minimax(HexGameStatus s, int depth, Integer alpha, Integer beta, long nodesExplored, int maxDepth, SearchType st, Heuristic heuristica) {
     // Caso base: si se alcanza la profundidad máxima o el juego ha terminado
     st = SearchType.MINIMAX;
-    if (depth == 0 || s.isGameOver()) {
+    if (timeFlag == true || depth == 0 || s.isGameOver()) {
         int value = heuristica.h(s, s.getCurrentPlayerColor());
         return new PlayerMove(null, exploredNodes+1, maxDepth, SearchType.MINIMAX);
     }
@@ -79,6 +80,7 @@ public PlayerMove minimax(HexGameStatus s, int depth, Integer alpha, Integer bet
     if (player.equals(this)) {
         int maxEval = Integer.MIN_VALUE;
         for (Point move : possibleMoves) {
+            if(timeFlag == true) break;
             HexGameStatus newState = new HexGameStatus(s);
             newState.placeStone(move); // Colocar piedra en la posición (x, y)
 
@@ -100,6 +102,7 @@ public PlayerMove minimax(HexGameStatus s, int depth, Integer alpha, Integer bet
     } else {
         int minEval = Integer.MAX_VALUE;
         for (Point move : possibleMoves) {
+            if(timeFlag == true) break;
             HexGameStatus newState = new HexGameStatus(s);
             newState.placeStone(move); // Colocar piedra en la posición (x, y)
 
@@ -145,7 +148,8 @@ private List<Point> getPossibleMoves(HexGameStatus s) {
     @Override
     public void timeout() {
         // Bah! Humans do not enjoy timeouts, oh, poor beasts !
-        System.out.println("Bah! You are so slow...");
+        System.out.print("Se acaba el tiempo");
+        timeFlag = true;
     }
     
     /**

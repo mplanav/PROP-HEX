@@ -27,11 +27,15 @@ public class Game {
                 
                 IPlayer player1 = new H_E_X_Player(2/*GB*/);
                 
+                //IPlayer player2 = new H_E_X_Player(2/*GB*/);
+                
                 //IPlayer player2 = new HumanPlayer("Human");
+                
+                //IPlayer player1 = new MyPlayer(4);
                 
                 IPlayer player2 = new MyPlayer(4);
                                 
-                new Board(player1 , player2, 4 /*mida*/,  10/*s*/, false);
+                new Board(player1 , player2, 4 /*mida*/,  5/*s*/, false);
              }
         });
     }
