@@ -69,7 +69,7 @@ public PlayerMove minimax(HexGameStatus s, int depth, Integer alpha, Integer bet
     // Caso base: si se alcanza la profundidad máxima o el juego ha terminado
     st = SearchType.MINIMAX;
     if (timeFlag == true || depth == 0 || s.isGameOver()) {
-        int value = heuristica.h(s, s.getCurrentPlayerColor());
+        int value = heuristica.h(s, s.getCurrentPlayer());
         return new PlayerMove(null, exploredNodes+1, maxDepth, SearchType.MINIMAX);
     }
     
@@ -86,7 +86,7 @@ public PlayerMove minimax(HexGameStatus s, int depth, Integer alpha, Integer bet
 
             // Llamada recursiva
             PlayerMove res = minimax(newState, depth -1, alpha, beta, nodesExplored+1, Math.max(maxDepth, depth), st, heuristica);
-            int eval = heuristica.h(newState, s.getCurrentPlayerColor());
+            int eval = heuristica.h(newState, s.getCurrentPlayer());
             if(eval > maxEval) {
                 maxEval = eval;
                 bestMove = move;
@@ -108,7 +108,7 @@ public PlayerMove minimax(HexGameStatus s, int depth, Integer alpha, Integer bet
 
             // Llamada recursiva
             PlayerMove res = minimax(newState, depth -1, alpha, beta, nodesExplored+1, Math.max(maxDepth, depth), st, heuristica);
-            int eval = heuristica.h(newState, s.getCurrentPlayerColor());
+            int eval = heuristica.h(newState, s.getCurrentPlayer());
             
             if(eval < minEval) {
                 minEval = eval; 
