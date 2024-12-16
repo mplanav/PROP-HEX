@@ -19,173 +19,115 @@ import org.w3c.dom.Node;
  */
 public class Heuristic {
     //status
-    HexGameStatus status;
-    //color
-    int color;
+    HexGameStatus _status;
+    PlayerType _player;
     
-    public Heuristic(HexGameStatus status, int color)
+    public Heuristic(HexGameStatus status, PlayerType player)
     {
-        this.status = status;
-        this.color = color;
+        this._status = status;
+        this._player = player;
     }
     
-   public static int[][] generateCosts(HexGameStatus status, PlayerType player)
+    public static int h(HexGameStatus s, PlayerType player)
     {
-        int RC = status.getSize(); //Rows & columns
-        int playerV = (player == PlayerType.PLAYER1) ? 1 : -1;
-        int opponent = -playerV;
-        int[][] costs = new int[RC][RC];
+        return dijkstra(generateCosts(s, s.getCurrentPlayer()), s.getSize(), new Point(0, 0), s.getCurrentPlayer());
+    }
+    
+    public static int[][] generateCosts(HexGameStatus s, PlayerType player)
+    {
+        int size = s.getSize();
+        int my = (player == PlayerType.PLAYER2) ? -1 : 1;
+        int op = (player == PlayerType.PLAYER1) ? 1 : -1;
         
-        for(int i = 0; i < RC; i++)
+        int[][] costs = new int[size][size];
+        for(int i = 0; i < size; i++)
         {
-            for(int j = 0; j < RC; j++)
+            for(int j = 0; j < size; j++)
             {
-                int cellColor = status.getPos(i,j);
-                if(cellColor == playerV) costs[i][j] = 0;
-                else if(cellColor == opponent) costs[i][j] = 5; //camí bloquejat
-                else costs[i][j] = 1; //cel·la buida
+                int cell = s.getPos(i,j);
+                if(cell == my) costs[i][j] = 0;
+                else if(cell == op) costs[i][j] = 100000;
+                else costs[i][j] = 1;
             }
         }
         return costs;
-     }
+    }
     
-    public static int dijkstra(int[][] costs, int RC, Point start, PlayerType player)
+    public static int dijkstra(int[][] costs, int size, Point start, PlayerType player)
     {
-       int[][] distances = new int[RC][RC];
+        int[][] distances = new int[size][size];
+        boolean[][] visited = new boolean[size][size];
         PriorityQueue<Point> queue = new PriorityQueue<>((a, b) -> Integer.compare(distances[a.x][a.y], distances[b.x][b.y]));
-        boolean[][] visited = new boolean[RC][RC];
-
-        // Inicializar distancias
-        for (int i = 0; i < RC; i++) {
-            for (int j = 0; j < RC; j++) {
+        
+        for(int i = 0; i < size; i++)
+        {
+            for(int j = 0; j < size; j++)
+            {
                 distances[i][j] = Integer.MAX_VALUE;
             }
         }
         distances[start.x][start.y] = 0;
         queue.add(start);
-
-        while (!queue.isEmpty()) {
+        
+        while(!queue.isEmpty())
+        {
             Point current = queue.poll();
-            if (visited[current.x][current.y]) continue;
+            if(visited[current.x][current.y]) continue;
             visited[current.x][current.y] = true;
-
-            for (Point neighbor : getNeighbors(current.x, current.y, RC)) {
-                if (!visited[neighbor.x][neighbor.y]) {
+            
+            for(Point neighbor : getNeighbors(current.x, current.y, size))
+            {
+                if(visited[neighbor.x][neighbor.y] == false)
+                {
+                    int newCost = costs[neighbor.x][neighbor.y];
+                    if(newCost >= 100000) continue; //blocked cell
                     int cost = distances[current.x][current.y] + costs[neighbor.x][neighbor.y];
-                    if (cost < distances[neighbor.x][neighbor.y]) {
+                    if(cost < distances[neighbor.x][neighbor.y])
+                    {
                         distances[neighbor.x][neighbor.y] = cost;
                         queue.add(neighbor);
                     }
                 }
             }
         }
-
-        return shortestPath(distances, player, RC);
+        return shortestPath(distances, player, size);
     }
     
-    private static int shortestPath(int[][] dists, PlayerType player, int RC)
+    private static int shortestPath(int[][] distances, PlayerType player, int size)
     {
         int minDist = Integer.MAX_VALUE;
-        int myPlayer = (player == PlayerType.PLAYER1) ? 1 : -1;
-        if(myPlayer == 1)
+        if(player == PlayerType.PLAYER2)
         {
-            for(int j = 0; j < RC; j++)
+            for(int j = 0; j < size; j++)
+                minDist = Math.min(minDist, distances[size - 1][j]);
+        }
+        else 
+        {
+            for(int i = 0; i < size; i++)
             {
-                minDist = Math.min(minDist, dists[RC -1][j]);
+                minDist = Math.min(minDist, distances[i][size - 1]);
             }
         }
-        else {
-            for(int i = 0; i < RC; i++)
-            {
-                minDist = Math.min(minDist, dists[i][RC-1]);
-            }
-        }
+        
+        if(minDist == Integer.MAX_VALUE) return -1000;
         return minDist;
     }
     
-    private static ArrayList<Point> getNeighbors(int x, int y, int RC)
+    private static List<Point> getNeighbors(int x, int y, int size)
     {
-        int[] dirx = {-1, -1, 0, 0, 1, 1};
-        int[] diry = {0, 1, -1, 1, -1, 0};
-    ArrayList<Point> nb = new ArrayList<>();
-
-    for (int i = 0; i < dirx.length; i++) {
-        int nx = x + dirx[i];
-        int ny = y + diry[i];
-        if (nx >= 0 && nx < RC && ny >= 0 && ny < RC) {
-            nb.add(new Point(nx, ny));
-        }
-    }
-
-    return nb;
-    }
-    
-    public int h(HexGameStatus s, PlayerType player)
-    {
-        int RC = s.getSize();
-        int myPlayer = (player == PlayerType.PLAYER1) ? 1 : -1;
-        int[][] costs = generateCosts(s, player);
-        int bestDist = Integer.MAX_VALUE;
-
-        //evaluacion del camino myPlayer
-        for (int i = 0; i < RC; i++)
-        {
-            if (myPlayer == 1) 
-            { // Player 1: izquierda a derecha
-                Point start = new Point(0, i);
-                bestDist = Math.min(bestDist, dijkstra(costs, RC, start, player));
-            } 
-            else 
-            { // Player 2: arriba a abajo
-                Point start = new Point(i, 0);
-                bestDist = Math.min(bestDist, dijkstra(costs, RC, start, player));
-            }
-        }
+        int[] dirX = {-1, -1, 0, 0, 1, 1};
+        int[] dirY = {0, 1, -1, 1, -1, 0};
+        List<Point> neighbors = new ArrayList<>();
         
-        //evaluación del camino opPlayer
-        PlayerType op = (player == PlayerType.PLAYER1) ? PlayerType.PLAYER2 : PlayerType.PLAYER1;
-        int[][] opCosts = generateCosts(s, op);
-        int opBestDist = Integer.MAX_VALUE;
-        
-        for(int i = 0; i < RC; i++)
+        for(int i = 0; i < dirX.length; i++)
         {
-            if(myPlayer == -1) 
-            {
-                Point start = new Point(0,i);
-                opBestDist = Math.min(opBestDist, dijkstra(opCosts, RC, start, op));
-            }
-            else 
-            {
-                Point start = new Point(i, 0);
-                opBestDist = Math.min(opBestDist, dijkstra(opCosts, RC, start, op));
-            }
+            int neighborX = x + dirX[i];
+            int neighborY = y + dirY[i];
+            
+            if(neighborX >= 0 && neighborX < size && neighborY >= 0 && neighborY < size)
+                neighbors.add(new Point(neighborX, neighborY));
         }
-    int opShortest = (opBestDist < RC /2) ? (RC - opBestDist) *5 : 0;
-    int score = RC*10 - bestDist - opShortest;
-    score += evaluateConnections(s, player);
-    return score;
-    }
-    
-    private int evaluateConnections(HexGameStatus s, PlayerType player)
-    {
-        int score = 0;
-        int RC = s.getSize();
-        int playerV = (player == PlayerType.PLAYER1) ? 1 : -1;
-        
-        for(int i = 0; i < RC; i++)
-        {
-            for(int j = 0; j < RC; j++)
-            {
-                if(s.getPos(i,j) == playerV)
-                {
-                    for(Point neighbor : getNeighbors(i, j, RC)) 
-                    {
-                        if(s.getPos(neighbor.x, neighbor.y) == playerV) score += 5;
-                    }
-                }
-            }
-        }
-        return score;
+        return neighbors;
     }
 }
 
