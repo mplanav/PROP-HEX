@@ -33,7 +33,7 @@ public class Game {
                 
                 //IPlayer player1 = new MyPlayer(4);
                 
-                IPlayer player2 = new MyPlayer(4);
+                IPlayer player2 = new MyPlayer(2);
                                 
                 new Board(player1 , player2, 11 /*mida*/,  10/*s*/, false);
              }
