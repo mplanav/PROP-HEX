@@ -5,6 +5,8 @@
         <group>
             <file>file:/home/marc/UNI/Q5/PROP/ACT_final/PROP-HEX/src/edu/upc/epsevg/prop/hex/Game.java</file>
             <file>file:/home/marc/UNI/Q5/PROP/ACT_final/PROP-HEX/src/edu/upc/epsevg/prop/hex/Heuristic.java</file>
+            <file>file:/home/marc/UNI/Q5/PROP/ACT_final/PROP-HEX/src/edu/upc/epsevg/prop/hex/PointDist.java</file>
+            <file>file:/home/marc/UNI/Q5/PROP/ACT_final/PROP-HEX/src/edu/upc/epsevg/prop/hex/UnitTesting.java</file>
             <file>file:/home/marc/UNI/Q5/PROP/ACT_final/PROP-HEX/src/edu/upc/epsevg/prop/hex/players/MyPlayer.java</file>
         </group>
     </open-files>

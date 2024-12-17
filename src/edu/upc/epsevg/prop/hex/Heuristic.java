@@ -30,21 +30,28 @@ public class Heuristic {
     
     public static int h(HexGameStatus s, PlayerType player)
     {
-        //return 0;
-        if(player == PlayerType.PLAYER1)
-        {
-            //idea boolea
-            PointDist R = new PointDist(new Point(12, 6), 0);
-            PointDist L = new PointDist(new Point(-1, 6), 0);
-            return dijkstra(generateCosts(s, player), s.getSize(), R, L, player);
+        int size = s.getSize();
+        int[][] costs = generateCosts(s, player);
+
+        if (player == PlayerType.PLAYER1) {
+            // Simula source (columna izquierda) y dest (columna derecha)
+            int minDistance = Integer.MAX_VALUE;
+            for (int row = 0; row < size; row++) {
+                PointDist source = new PointDist(new Point(row, 0), 0); // Columna izquierda
+                PointDist dest = new PointDist(new Point(row, size - 1), 0); // Columna derecha
+                minDistance = Math.min(minDistance, dijkstra(costs, size, source, dest, player));
+            }
+            return minDistance;
+        } else {
+            // Simula source (fila superior) y dest (fila inferior)
+            int minDistance = Integer.MAX_VALUE;
+            for (int col = 0; col < size; col++) {
+                PointDist source = new PointDist(new Point(0, col), 0); // Fila superior
+                PointDist dest = new PointDist(new Point(size - 1, col), 0); // Fila inferior
+                minDistance = Math.min(minDistance, dijkstra(costs, size, source, dest, player));
+            }
+            return minDistance;
         }
-        else
-        {
-            PointDist T = new PointDist(new Point(6, 12), 0);
-            PointDist B = new PointDist(new Point(6, -1), 0);
-            return dijkstra(generateCosts(s, player), s.getSize(), T, B, player);
-        }
-        
     }
     
     private static int[][] generateCosts(HexGameStatus s, PlayerType player)
@@ -71,45 +78,47 @@ public class Heuristic {
     {
         int[][] distances = new int[size][size];
         boolean[][] visited = new boolean[size][size];
-        PriorityQueue<PointDist> queue = new PriorityQueue<>((a, b) -> Integer.compare(distances[a._point.x][a._point.y], distances[b._point.x][b._point.y]));
-        
-        for(int i = 0; i < size; i++)
-        {
-            for(int j = 0; j < size; j++)
-            {
+        PriorityQueue<PointDist> queue = new PriorityQueue<>(
+            (a, b) -> Integer.compare(distances[a._point.x][a._point.y], distances[b._point.x][b._point.y])
+        );
+
+        // Inicializamos las distancias al valor máximo
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
                 distances[i][j] = Integer.MAX_VALUE;
             }
         }
-        //afegir veins del imaginari a la cua
+
+        // Distancia al punto inicial es 0
         distances[source._point.x][source._point.y] = 0;
-        //queue.add(new PointDist(, 0));
-        
-        while(!queue.isEmpty())
-        {
+        queue.add(new PointDist(source._point, 0));
+
+        while (!queue.isEmpty()) {
             PointDist current = queue.poll();
-            //comprovar si node final
-            //if(current == destination) break;
-            if(visited[current._point.x][current._point.y]) continue;
+
+            // Si llegamos al destino
+            if (current._point.equals(dest._point)) {
+                return distances[current._point.x][current._point.y];
+            }
+
+            // Si ya fue visitado, continuamos
+            if (visited[current._point.x][current._point.y]) continue;
             visited[current._point.x][current._point.y] = true;
-            
-            for(Point neighbor : getNeighbors(current._point.x, current._point.y, size))
-            {
-                if(visited[neighbor.x][neighbor.y] == false)
-                {
-                    int newCost = costs[neighbor.x][neighbor.y];
-                    if(newCost >= 100000) continue; //blocked cell
-                    int cost = distances[current._point.x][current._point.y] + costs[neighbor.x][neighbor.y];
-                    if(cost < distances[neighbor.x][neighbor.y])
-                    {
-                        distances[neighbor.x][neighbor.y] = cost;
-                        PointDist nb = new PointDist(neighbor, cost);
-                        //if de última columna, per afegir el veí imaginari
-                        queue.add(nb);
+
+            // Procesar vecinos
+            for (Point neighbor : getNeighbors(current._point.x, current._point.y, size)) {
+                if (!visited[neighbor.x][neighbor.y] && costs[neighbor.x][neighbor.y] < 100000) {
+                    int newCost = distances[current._point.x][current._point.y] + costs[neighbor.x][neighbor.y];
+                    if (newCost < distances[neighbor.x][neighbor.y]) {
+                        distances[neighbor.x][neighbor.y] = newCost;
+                        queue.add(new PointDist(neighbor, newCost));
                     }
                 }
             }
         }
-        return shortestPath(distances, player, size);
+
+        // Si no hay camino al destino, retorna infinito
+        return Integer.MAX_VALUE;
     }
     
     private static int shortestPath(int[][] distances, PlayerType player, int size)
