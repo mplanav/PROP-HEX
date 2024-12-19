@@ -87,14 +87,12 @@ public class MyPlayer implements IPlayer, IAuto{
      * @return el valor heurístic del millor moviment
      */
 public int minimax(HexGameStatus s, int depth, boolean maximizing, int alpha, int beta) {
-    if (TimeFlag || s.isGameOver() || depth == 0) {
-        PointDist res = new PointDist(new Point(0,0), 0);
+    if (s.isGameOver() || depth == 0) {
         if (s.GetWinner() == s.getCurrentPlayer()) return 10000;
         else if (s.GetWinner() != null) return -1000;
         else {
             _exploredNodes++;
-            res = Heuristic.h(s, s.getCurrentPlayer());
-            return res._cost;
+            return Heuristic.h(s, s.getCurrentPlayer());
         }
     }
 

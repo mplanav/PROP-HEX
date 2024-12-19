@@ -28,81 +28,30 @@ public class Heuristic {
         this._player = player;
     }
     
-    public static PointDist h(HexGameStatus s, PlayerType player)
-    {
-        PlayerType opponent = (player == PlayerType.PLAYER1) ? PlayerType.PLAYER2 : PlayerType.PLAYER1;
+    public static int h(HexGameStatus s, PlayerType player) {
+    int size = s.getSize();
+    int[][] costs = generateCosts(s, player);
 
-    // Encontrar el mejor movimiento defensivo
-    Point bestDef = findBestDefensiveMove(s, opponent);
-
-    if (bestDef == null) {
-        // Si no se encuentra un buen movimiento, devuelve un punto neutro con costo 0
-        return new PointDist(new Point(-1, -1), 0);
+    if (player == PlayerType.PLAYER1) {
+        // Simula source (columna izquierda) y dest (columna derecha)
+        int minDistance = Integer.MAX_VALUE;
+        for (int row = 0; row < size; row++) {
+            PointDist source = new PointDist(new Point(row, 0), 0); // Columna izquierda
+            PointDist dest = new PointDist(new Point(row, size - 1), 0); // Columna derecha
+            minDistance = Math.min(minDistance, dijkstra(costs, size, source, dest, player));
+        }
+        return minDistance;
+    } else {
+        // Simula source (fila superior) y dest (fila inferior)
+        int minDistance = Integer.MAX_VALUE;
+        for (int col = 0; col < size; col++) {
+            PointDist source = new PointDist(new Point(0, col), 0); // Fila superior
+            PointDist dest = new PointDist(new Point(size - 1, col), 0); // Fila inferior
+            minDistance = Math.min(minDistance, dijkstra(costs, size, source, dest, player));
+        }
+        return minDistance;
     }
-
-    // Calcular el impacto defensivo
-    int[][] costs = generateCosts(s, opponent);
-    int currentPathCost = shortestPathCost(costs, opponent, s.getSize());
-
-    HexGameStatus simulatedState = new HexGameStatus(s);
-    simulatedState.placeStone(bestDef);
-
-    int[][] newCosts = generateCosts(simulatedState, opponent);
-    int newPathCost = shortestPathCost(newCosts, opponent, s.getSize());
-
-    // Calcular la puntuación defensiva
-    int bestPath = newPathCost - currentPathCost;
-
-    // Imprimir detalles para depuración
-    System.out.println("Defensive move: (" + bestDef.x + ", " + bestDef.y + "), Impact: " + bestPath);
-
-    // Devolver el punto y su puntuación en un objeto PointDist
-    return new PointDist(bestDef, bestPath);
-        /*int size = s.getSize();
-        PlayerType op = (player == PlayerType.PLAYER1) ? PlayerType.PLAYER2 : PlayerType.PLAYER1;
-        int[][] costs = generateCosts(s, op);
-
-        int currentPathCost = shortestPathCost(costs, op, size);
-        int max = Integer.MIN_VALUE;
-        for(int i = 0; i < size; i++)
-        {
-            for(int j = 0; j < size; j++)
-            {
-                if(s.getPos(i,j) == 0)
-                {
-                    HexGameStatus auxS = new HexGameStatus(s);
-                    auxS.placeStone(new Point(i,j));
-                    
-                    int[][] newCosts = generateCosts(auxS, op);
-                    int pathCost = shortestPathCost(newCosts, op, size);
-                    
-                    int impact = pathCost - currentPathCost;
-                    max = Math.max(max, impact);
-                }
-            }
-        }*/
-        
-        
-        /*if (player == PlayerType.PLAYER1) {
-            // Simula source (columna izquierda) y dest (columna derecha)
-            int minDistance = Integer.MAX_VALUE;
-            for (int row = 0; row < size; row++) {
-                PointDist source = new PointDist(new Point(row, 0), 0); // Columna izquierda
-                PointDist dest = new PointDist(new Point(row, size - 1), 0); // Columna derecha
-                minDistance = Math.min(minDistance, dijkstra(costs, size, source, dest, player));
-            }
-            return minDistance;
-        } else {
-            // Simula source (fila superior) y dest (fila inferior)
-            int minDistance = Integer.MAX_VALUE;
-            for (int col = 0; col < size; col++) {
-                PointDist source = new PointDist(new Point(0, col), 0); // Fila superior
-                PointDist dest = new PointDist(new Point(size - 1, col), 0); // Fila inferior
-                minDistance = Math.min(minDistance, dijkstra(costs, size, source, dest, player));
-            }
-            return minDistance;*/
-        //return max;
-    }
+}
     
     private static int[][] generateCosts(HexGameStatus s, PlayerType player) {
     int size = s.getSize();
@@ -126,54 +75,53 @@ public class Heuristic {
 }
 
     
-    public static int dijkstra(int[][] costs, int size, PointDist source, PointDist dest, PlayerType player)
-    {
-        int[][] distances = new int[size][size];
-        boolean[][] visited = new boolean[size][size];
-        PriorityQueue<PointDist> queue = new PriorityQueue<>(
-            (a, b) -> Integer.compare(distances[a._point.x][a._point.y], distances[b._point.x][b._point.y])
-        );
+    public static int dijkstra(int[][] costs, int size, PointDist source, PointDist dest, PlayerType player) {
+    int[][] distances = new int[size][size];
+    boolean[][] visited = new boolean[size][size];
+    PriorityQueue<PointDist> queue = new PriorityQueue<>(
+        (a, b) -> Integer.compare(distances[a._point.x][a._point.y], distances[b._point.x][b._point.y])
+    );
 
-        // Inicializamos las distancias al valor máximo
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                distances[i][j] = Integer.MAX_VALUE;
-            }
+    // Inicializamos las distancias al valor máximo
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            distances[i][j] = Integer.MAX_VALUE;
+        }
+    }
+
+    // Distancia al punto inicial es 0
+    distances[source._point.x][source._point.y] = 0;
+    queue.add(new PointDist(source._point, 0));
+
+    while (!queue.isEmpty()) {
+        PointDist current = queue.poll();
+
+        // Si llegamos al destino
+        if (current._point.equals(dest._point)) {
+            return distances[current._point.x][current._point.y];
         }
 
-        // Distancia al punto inicial es 0
-        distances[source._point.x][source._point.y] = 0;
-        queue.add(new PointDist(source._point, 0));
+        // Si ya fue visitado, continuamos
+        if (visited[current._point.x][current._point.y]) continue;
+        visited[current._point.x][current._point.y] = true;
 
-        while (!queue.isEmpty()) {
-            PointDist current = queue.poll();
-
-            // if arrive destiny
-            if (current._point.equals(dest._point)) {
-                return distances[current._point.x][current._point.y];
-            }
-
-            // if already visited
-            if (visited[current._point.x][current._point.y]) continue;
-            visited[current._point.x][current._point.y] = true;
-
-            // process current neighbors
-            for (Point neighbor : getNeighbors(current._point.x, current._point.y, size)) {
-                if (!visited[neighbor.x][neighbor.y] && costs[neighbor.x][neighbor.y] < 100000) {
-                    int newCost = distances[current._point.x][current._point.y] + costs[neighbor.x][neighbor.y];
-                    if (newCost < distances[neighbor.x][neighbor.y]) {
-                        distances[neighbor.x][neighbor.y] = newCost;
-                        queue.add(new PointDist(neighbor, newCost));
-                    }
+        // Procesar vecinos
+        for (Point neighbor : getNeighbors(current._point.x, current._point.y, size)) {
+            if (!visited[neighbor.x][neighbor.y] && costs[neighbor.x][neighbor.y] < 100000) {
+                int newCost = distances[current._point.x][current._point.y] + costs[neighbor.x][neighbor.y];
+                if (newCost < distances[neighbor.x][neighbor.y]) {
+                    distances[neighbor.x][neighbor.y] = newCost;
+                    queue.add(new PointDist(neighbor, newCost));
                 }
             }
         }
+    }
 
-        // if not path MAX_VALUE
-        return Integer.MAX_VALUE;
+    // Si no hay camino al destino, retorna infinito
+    return Integer.MAX_VALUE;
     }
     
-    
+  /*  
    private static int shortestPathCost(int[][] costs, PlayerType player, int size) {
     int minDist = Integer.MAX_VALUE;
 
@@ -195,7 +143,7 @@ public class Heuristic {
     System.out.println("Shortest path cost for player " + player + ": " + minDist);
 
     return minDist;
-}
+}*/
 
     
     private static List<Point> getNeighbors(int x, int y, int size)
@@ -214,7 +162,7 @@ public class Heuristic {
         }
         return neighbors;
     }
-    
+    /*
     private static boolean isCriticalPoint(int x, int y, HexGameStatus s, PlayerType player)
     {
         int size = s.getSize();
@@ -271,7 +219,7 @@ public class Heuristic {
        //System.out.println("Best Defensive move: " + bestMove.x + " " + bestMove.y);
 
     return bestMove;
-}
+}*/
 
 
 }
