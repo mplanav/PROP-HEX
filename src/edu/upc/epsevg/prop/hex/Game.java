@@ -35,7 +35,7 @@ public class Game {
                 
                 IPlayer player2 = new MyPlayer(2);
                                 
-                new Board(player1 , player2, 11 /*mida*/,  10/*s*/, false);
+                new Board(player1 , player2, 6 /*mida*/,  10/*s*/, false);
              }
         });
     }

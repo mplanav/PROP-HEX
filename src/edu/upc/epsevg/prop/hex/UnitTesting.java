@@ -39,8 +39,8 @@ public class UnitTesting {
         
  
         
-        int h = Heuristic.h(gs, gs.getCurrentPlayer());
-        System.out.println("h="+h);
+        PointDist h = Heuristic.h(gs, gs.getCurrentPlayer());
+        System.out.println("h="+h._cost);
 
     }
     
