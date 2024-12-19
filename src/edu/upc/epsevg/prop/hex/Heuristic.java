@@ -28,7 +28,7 @@ public class Heuristic {
         this._player = player;
     }
     
-    public static int h(HexGameStatus s, PlayerType player) {
+    /*public static int h(HexGameStatus s, PlayerType player) {
     int size = s.getSize();
     int center = size / 2; // Coordenada central del tablero
     int score = 0;
@@ -46,33 +46,33 @@ public class Heuristic {
     }
 
     return score;
-}
+}*/
 
-   /* public static int h(HexGameStatus s, PlayerType player) {
-    int size = s.getSize();
-    int[][] costs = generateCosts(s, player);
+   public static int h(HexGameStatus s, PlayerType player) 
+   {
+        int size = s.getSize();
+        int[][] costs = generateCosts(s, player);
 
-    if (player == PlayerType.PLAYER1) {
-        // Simula source (columna izquierda) y dest (columna derecha)
-        int minDistance = Integer.MAX_VALUE;
-        for (int row = 0; row < size; row++) {
-            PointDist source = new PointDist(new Point(row, 0), 0); // Columna izquierda
-            PointDist dest = new PointDist(new Point(row, size - 1), 0); // Columna derecha
-            minDistance = Math.min(minDistance, dijkstra(costs, size, source, dest, player));
+        if (player == PlayerType.PLAYER1) {
+            // Simula source (columna izquierda) y dest (columna derecha)
+            int minDistance = Integer.MAX_VALUE;
+            for (int row = 0; row < size; row++) {
+                PointDist source = new PointDist(new Point(row, 0), 0); // Columna izquierda
+                PointDist dest = new PointDist(new Point(row, size - 1), 0); // Columna derecha
+                minDistance = Math.min(minDistance, dijkstra(costs, size, source, dest, player));
+            }
+            return minDistance;
+        } else {
+            // Simula source (fila superior) y dest (fila inferior)
+            int minDistance = Integer.MAX_VALUE;
+            for (int col = 0; col < size; col++) {
+                PointDist source = new PointDist(new Point(0, col), 0); // Fila superior
+                PointDist dest = new PointDist(new Point(size - 1, col), 0); // Fila inferior
+                minDistance = Math.min(minDistance, dijkstra(costs, size, source, dest, player));
+            }
+            return minDistance;
         }
-        return minDistance;
-    } else {
-        // Simula source (fila superior) y dest (fila inferior)
-        int minDistance = Integer.MAX_VALUE;
-        for (int col = 0; col < size; col++) {
-            PointDist source = new PointDist(new Point(0, col), 0); // Fila superior
-            PointDist dest = new PointDist(new Point(size - 1, col), 0); // Fila inferior
-            minDistance = Math.min(minDistance, dijkstra(costs, size, source, dest, player));
-        }
-        return minDistance;
     }
-}
-    */
     private static int[][] generateCosts(HexGameStatus s, PlayerType player) {
     int size = s.getSize();
     int my = (player == PlayerType.PLAYER2) ? -1 : 1;

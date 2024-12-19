@@ -46,81 +46,39 @@ public class MyPlayer implements IPlayer, IAuto {
     public PlayerMove move(HexGameStatus s) {
         _exploredNodes = 0;
         _myPlayer = s.getCurrentPlayer();
+        boolean maximizing = isMaximizing;
+        if (_myPlayer == PlayerType.PLAYER2) maximizing = true;
+
+        int bestV = Integer.MIN_VALUE;
         int alpha = -Integer.MAX_VALUE;
         int beta = Integer.MAX_VALUE;
+
+        bestMoveSoFar = null; // Inicializa la mejor jugada parcial
         Point bestMove = null;
-        int bestV = Integer.MIN_VALUE;
-        
-        List<Point> moves = getPossibleMoves(s);
-        for(Point move : moves)
-        {
-            HexGameStatus auxS = new HexGameStatus(s);
-            auxS.placeStone(move);
-            int v = minimizing(auxS, _depth-1, alpha, beta);
-            if(v > bestV)
-            {
-                bestV = v;
-                bestMove = move;
+        List<Point> possibleMoves = getPossibleMoves(s);
+
+        for (Point movement : possibleMoves) {
+            HexGameStatus newS = new HexGameStatus(s);
+            newS.placeStone(movement);
+            _exploredNodes += 1;
+
+            int value = minimax(newS, _depth - 1, maximizing, alpha, beta);
+            if (value > bestV) {
+                bestV = value;
+                bestMove = movement;
+                bestMoveSoFar = movement; // Actualiza la mejor jugada parcial
             }
-            alpha = Math.max(alpha, v);
-            if(beta <= alpha) break;
+
+            if (TimeFlag) break; // Sal de la búsqueda si el timeout se activó
         }
-        
-        return new PlayerMove(bestMove, _exploredNodes, _maxDepth, SearchType.MINIMAX);
+
+        if (bestMove == null && bestMoveSoFar != null) {
+            bestMove = bestMoveSoFar; // Usa la mejor jugada parcial si el timeout se activó
+        }
+
+        return new PlayerMove(bestMove, _exploredNodes, _depth, SearchType.MINIMAX);
     }
 
-    
-    private int minimizing(HexGameStatus s, int depth, int alpha, int beta)
-    {
-        if(s.isGameOver() || depth == 0)
-        {
-            if(s.isGameOver())
-            {
-                if(s.GetWinner() == PlayerType.PLAYER2) return 10000;
-                else return -10000;
-            }
-            _exploredNodes++;
-            return Heuristic.h(s, s.getCurrentPlayer());
-        }
-        int v = Integer.MAX_VALUE;
-        List<Point> moves = getPossibleMoves(s);
-        for(Point move : moves)
-        {
-            HexGameStatus auxS = new HexGameStatus(s);
-            auxS.placeStone(move);
-            v = Math.min(v, maximizing(auxS, depth-1, alpha, beta));
-            beta = Math.min(beta, v);
-            if(alpha >= beta) break;
-        }
-        return v;
-    }
-    
-    private int maximizing(HexGameStatus s, int depth, int alpha, int beta)
-    {
-        if(s.isGameOver() || depth == 0)
-        {
-            if(s.isGameOver())
-            {
-                if(s.GetWinner() == PlayerType.PLAYER2) return 10000;
-                else return -10000;
-            }
-            _exploredNodes++;
-            return Heuristic.h(s, s.getCurrentPlayer());
-        }
-        
-        int v = Integer.MIN_VALUE;
-        List<Point> moves = getPossibleMoves(s);
-        
-        for(Point move : moves)
-        {
-            HexGameStatus auxS = new HexGameStatus(s);
-            auxS.placeStone(move);
-            v = Math.max(v, minimizing(auxS, depth-1, alpha, beta));
-            alpha = Math.max(alpha, v);
-            if(alpha >= beta) break;
-        }
-        return v;
-    }
     /**
      * Algorisme Minimax amb poda alfa-beta per calcular el millor moviment.
      *
@@ -130,7 +88,7 @@ public class MyPlayer implements IPlayer, IAuto {
      * @param HexGameStatus el status del joc
      * @return el valor heurístic del millor moviment
      */
-    /*public int minimax(HexGameStatus s, int depth,  int alpha, int beta) {
+    public int minimax(HexGameStatus s, int depth, boolean maximizing, int alpha, int beta) {
         if (s.isGameOver() || depth == 0 || TimeFlag) {
             if (s.isGameOver()) {
                 if (s.GetWinner() == PlayerType.PLAYER2) return 10000;
@@ -171,7 +129,7 @@ public class MyPlayer implements IPlayer, IAuto {
             }
         }
         return value;
-    }*/
+    }
 
     private List<Point> getPossibleMoves(HexGameStatus s) {
         List<Point> possibleMoves = new ArrayList<>();
