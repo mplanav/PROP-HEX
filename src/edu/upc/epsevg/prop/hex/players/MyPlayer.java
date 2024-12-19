@@ -26,7 +26,7 @@ public class MyPlayer implements IPlayer, IAuto{
     private long _exploredNodes;
     private boolean TimeFlag = false;
     private int _depth;
-    private int _maxDepth = 20;
+    private int _maxDepth;
     private PlayerType _myPlayer;
     private boolean isMaximizing = false;
     
@@ -50,7 +50,6 @@ public class MyPlayer implements IPlayer, IAuto{
     public PlayerMove move(HexGameStatus s) {
         _exploredNodes = 0;
         _myPlayer = s.getCurrentPlayer();
-        TimeFlag = false;
         boolean maximizing = isMaximizing;
         if(_myPlayer == PlayerType.PLAYER2) maximizing = true;
         int bestV = Integer.MIN_VALUE;
@@ -72,7 +71,7 @@ public class MyPlayer implements IPlayer, IAuto{
                 bestMove = movement;
             }
         }
-        return new PlayerMove(bestMove, _exploredNodes, _depth, SearchType.MINIMAX);
+        return new PlayerMove(bestMove, _exploredNodes, _maxDepth, SearchType.MINIMAX);
     }
     
     /**
@@ -109,7 +108,7 @@ public int minimax(HexGameStatus s, int depth, boolean maximizing, int alpha, in
                 if(s.getPos(i, j) == 0)
                 {
                     newS.placeStone(new Point(i, j));
-                    int eval = minimax(newS, depth-1, false, alpha, beta);
+                    int eval = minimax(newS, depth+1, false, alpha, beta);
                     value = Math.max(value, eval);
                     alpha = Math.max(alpha, eval);
                     if(alpha >= beta) break;
@@ -129,7 +128,7 @@ public int minimax(HexGameStatus s, int depth, boolean maximizing, int alpha, in
                 if(s.getPos(i,j) == 0)
                 {
                     newS.placeStone(new Point(i,j));
-                    int eval = minimax(newS, depth-1, true, alpha, beta);
+                    int eval = minimax(newS, depth+1, true, alpha, beta);
                     value = Math.min(value, eval);
                     beta = Math.min(beta, eval);
                     if(alpha >= beta) break;
@@ -164,8 +163,8 @@ private List<Point> getPossibleMoves(HexGameStatus s) {
     @Override
     public void timeout() {
         // Bah! Humans do not enjoy timeouts, oh, poor beasts !
-        //System.out.print("Se acaba el tiempo");
-        //TimeFlag = true;
+        System.out.print("Se acaba el tiempo");
+        TimeFlag = true;
     }
     
     /**
