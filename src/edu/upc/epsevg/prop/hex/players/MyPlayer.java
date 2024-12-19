@@ -4,7 +4,6 @@
  */
 package edu.upc.epsevg.prop.hex.players;
 
-import edu.upc.epsevg.prop.hex.Heuristic;
 import edu.upc.epsevg.prop.hex.HexGameStatus;
 import edu.upc.epsevg.prop.hex.IAuto;
 import edu.upc.epsevg.prop.hex.IPlayer;
@@ -50,8 +49,7 @@ public class MyPlayer implements IPlayer, IAuto{
      */
     @Override
     public PlayerMove move(HexGameStatus s) {
-        Heuristic heuristica = new Heuristic(s, s.getCurrentPlayerColor());
-        PlayerMove movement = minimax(s, maxDepth-1, Integer.MIN_VALUE, Integer.MAX_VALUE, 0, 0, SearchType.MINIMAX, heuristica);
+        PlayerMove movement = minimax(s, maxDepth-1, Integer.MIN_VALUE, Integer.MAX_VALUE, 0, 0, SearchType.MINIMAX);
         return movement;
     }
     
@@ -64,11 +62,11 @@ public class MyPlayer implements IPlayer, IAuto{
      * @param HexGameStatus el status del joc
      * @return el valor heurístic del millor moviment
      */
-public PlayerMove minimax(HexGameStatus s, int depth, Integer alpha, Integer beta, long nodesExplored, int maxDepth, SearchType st, Heuristic heuristica) {
+public PlayerMove minimax(HexGameStatus s, int depth, Integer alpha, Integer beta, long nodesExplored, int maxDepth, SearchType st) {
     // Caso base: si se alcanza la profundidad máxima o el juego ha terminado
     st = SearchType.MINIMAX;
     if (depth == 0 || s.isGameOver()) {
-        int value = heuristica.h(s, s.getCurrentPlayerColor());
+        int value = heuristic(s, s.getCurrentPlayerColor());
         return new PlayerMove(null, exploredNodes+1, maxDepth, SearchType.MINIMAX);
     }
     
@@ -83,8 +81,8 @@ public PlayerMove minimax(HexGameStatus s, int depth, Integer alpha, Integer bet
             newState.placeStone(move); // Colocar piedra en la posición (x, y)
 
             // Llamada recursiva
-            PlayerMove res = minimax(newState, depth -1, alpha, beta, nodesExplored+1, Math.max(maxDepth, depth), st, heuristica);
-            int eval = heuristica.h(newState, s.getCurrentPlayerColor());
+            PlayerMove res = minimax(newState, depth -1, alpha, beta, nodesExplored+1, Math.max(maxDepth, depth), st);
+            int eval = heuristic(newState, s.getCurrentPlayerColor());
             if(eval > maxEval) {
                 maxEval = eval;
                 bestMove = move;
@@ -104,8 +102,8 @@ public PlayerMove minimax(HexGameStatus s, int depth, Integer alpha, Integer bet
             newState.placeStone(move); // Colocar piedra en la posición (x, y)
 
             // Llamada recursiva
-            PlayerMove res = minimax(newState, depth -1, alpha, beta, nodesExplored+1, Math.max(maxDepth, depth), st, heuristica);
-            int eval = heuristica.h(newState, s.getCurrentPlayerColor());
+            PlayerMove res = minimax(newState, depth -1, alpha, beta, nodesExplored+1, Math.max(maxDepth, depth), st);
+            int eval = heuristic(newState, s.getCurrentPlayerColor());
             
             if(eval < minEval) {
                 minEval = eval; 
@@ -122,10 +120,24 @@ public PlayerMove minimax(HexGameStatus s, int depth, Integer alpha, Integer bet
     }
 }
 
-/*public int heuristic(HexGameStatus s, int color)
+public int heuristic(HexGameStatus s, int color)
 {
-
-}*/
+    int score = 0;
+    for(int x = 0; x < s.getSize(); x++) {
+        for(int y = 0; y < s.getSize(); y++) {
+            Point p = new Point(x, y);
+            int posColor = s.getPos(p); //obtenim el color de cada posicio del tauler
+            
+            if(posColor == color) {
+                score += 10;
+            }
+            else if(posColor != 0) {
+                score -= 10;
+            }
+        }
+    }
+    return score;
+}
     
 private List<Point> getPossibleMoves(HexGameStatus s) {
     List<MoveNode> moves = s.getMoves(); // Obtener movimientos válidos
