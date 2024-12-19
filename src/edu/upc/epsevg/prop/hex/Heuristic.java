@@ -30,6 +30,26 @@ public class Heuristic {
     
     public static int h(HexGameStatus s, PlayerType player) {
     int size = s.getSize();
+    int center = size / 2; // Coordenada central del tablero
+    int score = 0;
+
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            int cell = s.getPos(i, j);
+            if (cell == 0) {
+                // Calcula la distancia al centro
+                int distanceToCenter = Math.abs(i - center) + Math.abs(j - center);
+                // Asigna una puntuación basada en la cercanía al centro
+                score += (size - distanceToCenter); // Más cerca del centro => mayor puntuación
+            }
+        }
+    }
+
+    return score;
+}
+
+   /* public static int h(HexGameStatus s, PlayerType player) {
+    int size = s.getSize();
     int[][] costs = generateCosts(s, player);
 
     if (player == PlayerType.PLAYER1) {
@@ -52,7 +72,7 @@ public class Heuristic {
         return minDistance;
     }
 }
-    
+    */
     private static int[][] generateCosts(HexGameStatus s, PlayerType player) {
     int size = s.getSize();
     int my = (player == PlayerType.PLAYER2) ? -1 : 1;
@@ -120,30 +140,7 @@ public class Heuristic {
     // Si no hay camino al destino, retorna infinito
     return Integer.MAX_VALUE;
     }
-    
-  /*  
-   private static int shortestPathCost(int[][] costs, PlayerType player, int size) {
-    int minDist = Integer.MAX_VALUE;
 
-    for (int i = 0; i < size; i++) {
-        PointDist source, dest;
-        if (player == PlayerType.PLAYER1) {
-            source = new PointDist(new Point(i, 0), 0); // Borde izquierdo
-            dest = new PointDist(new Point(i, size - 1), 0); // Borde derecho
-        } else {
-            source = new PointDist(new Point(0, i), 0); // Borde superior
-            dest = new PointDist(new Point(size - 1, i), 0); // Borde inferior
-        }
-
-        int pathCost = dijkstra(costs, size, source, dest, player);
-        minDist = Math.min(minDist, pathCost);
-    }
-
-    // Debugging: Verifica los costos
-    System.out.println("Shortest path cost for player " + player + ": " + minDist);
-
-    return minDist;
-}*/
 
     
     private static List<Point> getNeighbors(int x, int y, int size)
@@ -219,6 +216,31 @@ public class Heuristic {
        //System.out.println("Best Defensive move: " + bestMove.x + " " + bestMove.y);
 
     return bestMove;
+}*/
+    
+        
+  /*  
+   private static int shortestPathCost(int[][] costs, PlayerType player, int size) {
+    int minDist = Integer.MAX_VALUE;
+
+    for (int i = 0; i < size; i++) {
+        PointDist source, dest;
+        if (player == PlayerType.PLAYER1) {
+            source = new PointDist(new Point(i, 0), 0); // Borde izquierdo
+            dest = new PointDist(new Point(i, size - 1), 0); // Borde derecho
+        } else {
+            source = new PointDist(new Point(0, i), 0); // Borde superior
+            dest = new PointDist(new Point(size - 1, i), 0); // Borde inferior
+        }
+
+        int pathCost = dijkstra(costs, size, source, dest, player);
+        minDist = Math.min(minDist, pathCost);
+    }
+
+    // Debugging: Verifica los costos
+    System.out.println("Shortest path cost for player " + player + ": " + minDist);
+
+    return minDist;
 }*/
 
 

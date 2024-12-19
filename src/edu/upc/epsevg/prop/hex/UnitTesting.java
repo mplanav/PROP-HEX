@@ -5,8 +5,9 @@
  */
 package edu.upc.epsevg.prop.hex;
 
+import edu.upc.epsevg.prop.hex.Heuristic;
+import edu.upc.epsevg.prop.hex.players.MyPlayer;
 import edu.upc.epsevg.prop.hex.HexGameStatus;
-import edu.upc.epsevg.prop.hex.PlayerType;
 import edu.upc.epsevg.prop.hex.players.ProfeGameStatus2;
 import edu.upc.epsevg.prop.hex.players.ProfeGameStatus3;
 import edu.upc.epsevg.prop.hex.players.ProfeGameStatus3.Result;
@@ -29,14 +30,15 @@ public class UnitTesting {
                   { 0, 0, 0, 0, 0, 0, 0, 0, 0},                // 3
                     { 0, 0, 0, 0,-1, 0, 0, 0, 0},              // 4  
                       { 0, 0, 0, 0, 0, 1, 0, 0, 0},            // 5    
-                        { 0, 0, 0,-1,-1,-1, 1,-1, 0},          // 6      
+                        { -1, -1, -1,-1,-1,-1, 1,-1, 0},          // 6      
                           { 0, 0, 1, 1, 1, 1,-1, 1, 0},        // 7       
                             { 0, 0, 0, 0, 0, 0,-1, 0, 1}       // 8    Y         
         };
 
 
         HexGameStatus gs = new HexGameStatus(board, PlayerType.PLAYER1);        
-        
+        int h = Heuristic.h(gs, PlayerType.PLAYER2);
+        System.out.println("h:"+h);
  
     }
     

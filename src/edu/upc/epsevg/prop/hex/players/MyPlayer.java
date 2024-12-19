@@ -1,48 +1,43 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package edu.upc.epsevg.prop.hex.players;
 
 import edu.upc.epsevg.prop.hex.Heuristic;
 import edu.upc.epsevg.prop.hex.HexGameStatus;
 import edu.upc.epsevg.prop.hex.IAuto;
 import edu.upc.epsevg.prop.hex.IPlayer;
-import edu.upc.epsevg.prop.hex.MoveNode;
 import edu.upc.epsevg.prop.hex.PlayerMove;
 import edu.upc.epsevg.prop.hex.PlayerType;
 import edu.upc.epsevg.prop.hex.SearchType;
-import edu.upc.epsevg.prop.hex.PointDist;
+
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- *  Jugador amb heurística
+ * Jugador amb heurística
  * @author marc i victor
  */
-public class MyPlayer implements IPlayer, IAuto{
-    
+public class MyPlayer implements IPlayer, IAuto {
+
     private String _name;
     private long _exploredNodes;
     private boolean TimeFlag = false;
     private int _depth;
-    private int _maxDepth = 20;
+    private int _maxDepth;
     private PlayerType _myPlayer;
     private boolean isMaximizing = false;
-    
+    private Point bestMoveSoFar; // Para guardar la mejor jugada parcial
+
     public MyPlayer(String name, int depth) {
         this._name = name;
         this._depth = depth;
     }
-    
-    public MyPlayer(int depth)
-    {
+
+    public MyPlayer(int depth) {
         this._depth = depth;
     }
+
     /**
-     * Decideix el moviment del jugador donat un tauler i un color de peça que
-     * ha de posar.
+     * Decideix el moviment del jugador donat un tauler i un color de peça que ha de posar.
      *
      * @param s Tauler i estat actual de joc.
      * @return el moviment que fa el jugador.
@@ -51,32 +46,81 @@ public class MyPlayer implements IPlayer, IAuto{
     public PlayerMove move(HexGameStatus s) {
         _exploredNodes = 0;
         _myPlayer = s.getCurrentPlayer();
-        TimeFlag = false;
-        boolean maximizing = isMaximizing;
-        if(_myPlayer == PlayerType.PLAYER2) maximizing = true;
-        int bestV = Integer.MIN_VALUE;
         int alpha = -Integer.MAX_VALUE;
         int beta = Integer.MAX_VALUE;
-        
         Point bestMove = null;
-        List<Point> possibleMoves = getPossibleMoves(s);
+        int bestV = Integer.MIN_VALUE;
         
-        for(Point movement : possibleMoves)
+        List<Point> moves = getPossibleMoves(s);
+        for(Point move : moves)
         {
-            HexGameStatus newS = new HexGameStatus(s);
-            newS.placeStone(movement);
-            _exploredNodes += 1;
-            int value = minimax(newS, _depth-1, maximizing, alpha, beta);
-            if(value > bestV)
+            HexGameStatus auxS = new HexGameStatus(s);
+            auxS.placeStone(move);
+            int v = minimizing(auxS, _depth-1, alpha, beta);
+            if(v > bestV)
             {
-                bestV = value;
-                bestMove = movement;
+                bestV = v;
+                bestMove = move;
             }
-            System.out.println("Player Move:" + bestMove.x+","+bestMove.y);
+            alpha = Math.max(alpha, v);
+            if(beta <= alpha) break;
         }
-        return new PlayerMove(bestMove, _exploredNodes, _depth, SearchType.MINIMAX);
+        
+        return new PlayerMove(bestMove, _exploredNodes, _maxDepth, SearchType.MINIMAX);
+    }
+
+    
+    private int minimizing(HexGameStatus s, int depth, int alpha, int beta)
+    {
+        if(s.isGameOver() || depth == 0)
+        {
+            if(s.isGameOver())
+            {
+                if(s.GetWinner() == PlayerType.PLAYER2) return 10000;
+                else return -10000;
+            }
+            _exploredNodes++;
+            return Heuristic.h(s, s.getCurrentPlayer());
+        }
+        int v = Integer.MAX_VALUE;
+        List<Point> moves = getPossibleMoves(s);
+        for(Point move : moves)
+        {
+            HexGameStatus auxS = new HexGameStatus(s);
+            auxS.placeStone(move);
+            v = Math.min(v, maximizing(auxS, depth-1, alpha, beta));
+            beta = Math.min(beta, v);
+            if(alpha >= beta) break;
+        }
+        return v;
     }
     
+    private int maximizing(HexGameStatus s, int depth, int alpha, int beta)
+    {
+        if(s.isGameOver() || depth == 0)
+        {
+            if(s.isGameOver())
+            {
+                if(s.GetWinner() == PlayerType.PLAYER2) return 10000;
+                else return -10000;
+            }
+            _exploredNodes++;
+            return Heuristic.h(s, s.getCurrentPlayer());
+        }
+        
+        int v = Integer.MIN_VALUE;
+        List<Point> moves = getPossibleMoves(s);
+        
+        for(Point move : moves)
+        {
+            HexGameStatus auxS = new HexGameStatus(s);
+            auxS.placeStone(move);
+            v = Math.max(v, minimizing(auxS, depth-1, alpha, beta));
+            alpha = Math.max(alpha, v);
+            if(alpha >= beta) break;
+        }
+        return v;
+    }
     /**
      * Algorisme Minimax amb poda alfa-beta per calcular el millor moviment.
      *
@@ -86,84 +130,70 @@ public class MyPlayer implements IPlayer, IAuto{
      * @param HexGameStatus el status del joc
      * @return el valor heurístic del millor moviment
      */
-public int minimax(HexGameStatus s, int depth, boolean maximizing, int alpha, int beta) {
-    if (s.isGameOver() || depth == 0) {
-        if (s.GetWinner() == s.getCurrentPlayer()) return 10000;
-        else if (s.GetWinner() != null) return -1000;
-        else {
+    /*public int minimax(HexGameStatus s, int depth,  int alpha, int beta) {
+        if (s.isGameOver() || depth == 0 || TimeFlag) {
+            if (s.isGameOver()) {
+                if (s.GetWinner() == PlayerType.PLAYER2) return 10000;
+                else if (s.GetWinner() == PlayerType.PLAYER1) return -1000;
+            }
             _exploredNodes++;
             return Heuristic.h(s, s.getCurrentPlayer());
         }
-    }
 
-    int value;
-    if (maximizing) {
-        value = Integer.MIN_VALUE;
-        for (int i = s.getSize() - 1; i >= 0; i--) {
-            for (int j = s.getSize() - 1; j >= 0; j--) {
-                if (TimeFlag) break;
-                if (s.getPos(i, j) == 0) {
-                    HexGameStatus newS = new HexGameStatus(s);
-                    newS.placeStone(new Point(i, j));
-
-                    int eval = minimax(newS, depth - 1, false, alpha, beta);
-                    value = Math.max(value, eval);
-                    alpha = Math.max(alpha, eval);
-
-                    if (alpha >= beta) break;
+        int value;
+        if (maximizing) {
+            value = Integer.MIN_VALUE;
+            for (int i = s.getSize() - 1; i >= 0; i--) {
+                for (int j = s.getSize() - 1; j >= 0; j--) {
+                    if (s.getPos(i, j) == 0) {
+                        HexGameStatus newS = new HexGameStatus(s);
+                        newS.placeStone(new Point(i, j));
+                        int eval = minimax(newS, depth - 1, false, alpha, beta);
+                        value = Math.max(value, eval);
+                        alpha = Math.max(alpha, eval);
+                        if (alpha >= beta) break;
+                    }
+                }
+            }
+        } else {
+            value = Integer.MAX_VALUE;
+            for (int i = s.getSize() - 1; i >= 0; i--) {
+                for (int j = s.getSize() - 1; j >= 0; j--) {
+                    if (s.getPos(i, j) == 0) {
+                        HexGameStatus newS = new HexGameStatus(s);
+                        newS.placeStone(new Point(i, j));
+                        int eval = minimax(newS, depth - 1, true, alpha, beta);
+                        value = Math.min(value, eval);
+                        beta = Math.min(beta, eval);
+                        if (alpha >= beta) break;
+                    }
                 }
             }
         }
-    } else {
-        value = Integer.MAX_VALUE;
-        for (int i = s.getSize() - 1; i >= 0; i--) {
-            for (int j = s.getSize() - 1; j >= 0; j--) {
-                if (TimeFlag) break;
+        return value;
+    }*/
+
+    private List<Point> getPossibleMoves(HexGameStatus s) {
+        List<Point> possibleMoves = new ArrayList<>();
+        for (int i = 0; i < s.getSize(); i++) {
+            for (int j = 0; j < s.getSize(); j++) {
                 if (s.getPos(i, j) == 0) {
-                    HexGameStatus newS = new HexGameStatus(s);
-                    newS.placeStone(new Point(i, j));
-
-                    int eval = minimax(newS, depth - 1, true, alpha, beta);
-                    value = Math.min(value, eval);
-                    beta = Math.min(beta, eval);
-
-                    if (alpha >= beta) break;
+                    possibleMoves.add(new Point(i, j));
                 }
             }
         }
+        return possibleMoves;
     }
-    return value;
-}
 
-
-/*public int heuristic(HexGameStatus s, int color)
-{
-
-}*/
-    
-private List<Point> getPossibleMoves(HexGameStatus s) {
-    List<Point> possibleMoves = new ArrayList<>();
-    for (int i = 0; i < s.getSize(); i++) {
-        for(int j = 0; j < s.getSize(); j++)
-        {
-          Point current = new Point(i, j);
-          if(s.getPos(i, j) == 0) possibleMoves.add(current); 
-        }
-    }
-    return possibleMoves;
-}
-    
     /**
-     * Ens avisa que hem de parar la cerca en curs perquè s'ha exhaurit el temps
-     * de joc.
+     * Ens avisa que hem de parar la cerca en curs perquè s'ha exhaurit el temps de joc.
      */
     @Override
     public void timeout() {
-        // Bah! Humans do not enjoy timeouts, oh, poor beasts !
-        //System.out.print("Se acaba el tiempo");
-        //TimeFlag = true;
+        System.out.print("Se acaba el tiempo");
+        TimeFlag = true;
     }
-    
+
     /**
      * Retorna el nom del jugador que s'utlilitza per visualització a la UI
      *
