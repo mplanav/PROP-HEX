@@ -12,8 +12,8 @@ import java.awt.Point;
  */
 public class PointDist {
     String _name;
-    public int _cost;
-    public Point _point;
+    int _cost;
+    Point _point;
     
     public PointDist(Point p, int cost)
     {
