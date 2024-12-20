@@ -6,15 +6,16 @@ import edu.upc.epsevg.prop.hex.IAuto;
 import edu.upc.epsevg.prop.hex.IPlayer;
 import edu.upc.epsevg.prop.hex.PlayerMove;
 import edu.upc.epsevg.prop.hex.PlayerType;
+import edu.upc.epsevg.prop.hex.PointDist;
 import edu.upc.epsevg.prop.hex.SearchType;
 
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
- * Jugador amb heurística
- * @author marc i victor
+ * Jugador con heurística modificada para favorecer posiciones cercanas al centro.
  */
 public class MyPlayer implements IPlayer, IAuto {
 
@@ -22,143 +23,139 @@ public class MyPlayer implements IPlayer, IAuto {
     private long _exploredNodes;
     private boolean TimeFlag = false;
     private int _depth;
-    private int _maxDepth;
     private PlayerType _myPlayer;
-    private boolean isMaximizing = false;
-    private Point bestMoveSoFar; // Para guardar la mejor jugada parcial
 
     public MyPlayer(String name, int depth) {
         this._name = name;
         this._depth = depth;
     }
 
-    public MyPlayer(int depth) {
-        this._depth = depth;
-    }
-
     /**
-     * Decideix el moviment del jugador donat un tauler i un color de peça que ha de posar.
+     * Decide el movimiento del jugador dado un tablero y el color de la pieza.
      *
-     * @param s Tauler i estat actual de joc.
-     * @return el moviment que fa el jugador.
+     * @param s Tablero y estado actual del juego.
+     * @return el movimiento que realiza el jugador.
      */
     @Override
-    public PlayerMove move(HexGameStatus s) {
-        _exploredNodes = 0;
-        _myPlayer = s.getCurrentPlayer();
-        boolean maximizing = isMaximizing;
-        if (_myPlayer == PlayerType.PLAYER2) maximizing = true;
+public PlayerMove move(HexGameStatus s) {
+    _exploredNodes = 0;
+    _myPlayer = s.getCurrentPlayer();
+    int alpha = Integer.MIN_VALUE;
+    int beta = Integer.MAX_VALUE;
 
-        int bestV = Integer.MIN_VALUE;
-        int alpha = -Integer.MAX_VALUE;
-        int beta = Integer.MAX_VALUE;
+    // Obtener todos los movimientos posibles
+    List<PointDist> possibleMoves = getPossibleMoves(s);
 
-        bestMoveSoFar = null; // Inicializa la mejor jugada parcial
-        Point bestMove = null;
-        List<Point> possibleMoves = getPossibleMoves(s);
+    PointDist bestMove = null;
+    int bestValue = Integer.MIN_VALUE;
 
-        for (Point movement : possibleMoves) {
-            HexGameStatus newS = new HexGameStatus(s);
-            newS.placeStone(movement);
-            _exploredNodes += 1;
+    // Evaluar cada movimiento con minimax
+    for (PointDist move : possibleMoves) {
+        HexGameStatus newS = new HexGameStatus(s);
+        newS.placeStone(move._point);
 
-            int value = minimax(newS, _depth - 1, maximizing, alpha, beta);
-            if (value > bestV) {
-                bestV = value;
-                bestMove = movement;
-                bestMoveSoFar = movement; // Actualiza la mejor jugada parcial
-            }
+        int value = minimax(newS, _depth - 1, false, alpha, beta, move._point);
 
-            if (TimeFlag) break; // Sal de la búsqueda si el timeout se activó
+        if (value > bestValue) {
+            bestValue = value;
+            bestMove = move;
         }
 
-        if (bestMove == null && bestMoveSoFar != null) {
-            bestMove = bestMoveSoFar; // Usa la mejor jugada parcial si el timeout se activó
-        }
-
-        return new PlayerMove(bestMove, _exploredNodes, _depth, SearchType.MINIMAX);
+        if (TimeFlag) break; // Salir si se agota el tiempo
     }
 
+    // Retornar el mejor movimiento encontrado
+    if (bestMove != null) {
+        return new PlayerMove(bestMove._point, _exploredNodes, _depth, SearchType.MINIMAX);
+    }
+
+    // Si no hay movimientos posibles, devolver null (debería ser improbable)
+    return null;
+}
+
     /**
-     * Algorisme Minimax amb poda alfa-beta per calcular el millor moviment.
+     * Implementación del algoritmo Minimax con poda alfa-beta.
      *
-     * @param depth la profunditat restant per explorar
-     * @param alpha el valor de poda alfa
-     * @param beta el valor de poda beta
-     * @param HexGameStatus el status del joc
-     * @return el valor heurístic del millor moviment
+     * @param s Estado del juego.
+     * @param depth Profundidad restante por explorar.
+     * @param maximizing Indica si es el turno del jugador maximizador.
+     * @param alpha Valor de poda alfa.
+     * @param beta Valor de poda beta.
+     * @param currentPoint Punto actual a evaluar.
+     * @return Valor heurístico del mejor movimiento.
      */
-    public int minimax(HexGameStatus s, int depth, boolean maximizing, int alpha, int beta) {
-        if (s.isGameOver() || depth == 0 || TimeFlag) {
-            if (s.isGameOver()) {
-                if (s.GetWinner() == PlayerType.PLAYER2) return 10000;
-                else if (s.GetWinner() == PlayerType.PLAYER1) return -1000;
-            }
-            _exploredNodes++;
-            return Heuristic.h(s, s.getCurrentPlayer());
+public int minimax(HexGameStatus s, int depth, boolean maximizing, int alpha, int beta, Point currentPoint) {
+    if (s.isGameOver() || depth == 0 || TimeFlag) {
+        if (s.isGameOver()) {
+            if (s.GetWinner() == PlayerType.PLAYER2) return 10000;
+            else if (s.GetWinner() == PlayerType.PLAYER1) return -10000;
         }
+        _exploredNodes++;
+        return Heuristic.h(s, currentPoint)._cost;
+    }
 
-        int value;
+    int value = maximizing ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+
+    List<PointDist> possibleMoves = getPossibleMoves(s);
+
+    for (PointDist movement : possibleMoves) {
+        HexGameStatus newS = new HexGameStatus(s);
+        newS.placeStone(movement._point);
+
+        int eval = minimax(newS, depth - 1, !maximizing, alpha, beta, movement._point);
+
         if (maximizing) {
-            value = Integer.MIN_VALUE;
-            for (int i = s.getSize() - 1; i >= 0; i--) {
-                for (int j = s.getSize() - 1; j >= 0; j--) {
-                    if (s.getPos(i, j) == 0) {
-                        HexGameStatus newS = new HexGameStatus(s);
-                        newS.placeStone(new Point(i, j));
-                        int eval = minimax(newS, depth - 1, false, alpha, beta);
-                        value = Math.max(value, eval);
-                        alpha = Math.max(alpha, eval);
-                        if (alpha >= beta) break;
-                    }
-                }
-            }
+            value = Math.max(value, eval);
+            alpha = Math.max(alpha, eval);
         } else {
-            value = Integer.MAX_VALUE;
-            for (int i = s.getSize() - 1; i >= 0; i--) {
-                for (int j = s.getSize() - 1; j >= 0; j--) {
-                    if (s.getPos(i, j) == 0) {
-                        HexGameStatus newS = new HexGameStatus(s);
-                        newS.placeStone(new Point(i, j));
-                        int eval = minimax(newS, depth - 1, true, alpha, beta);
-                        value = Math.min(value, eval);
-                        beta = Math.min(beta, eval);
-                        if (alpha >= beta) break;
-                    }
-                }
-            }
+            value = Math.min(value, eval);
+            beta = Math.min(beta, eval);
         }
-        return value;
+
+        if (alpha >= beta) break; // Corta la búsqueda si ocurre poda
     }
 
-    private List<Point> getPossibleMoves(HexGameStatus s) {
-        List<Point> possibleMoves = new ArrayList<>();
-        for (int i = 0; i < s.getSize(); i++) {
-            for (int j = 0; j < s.getSize(); j++) {
-                if (s.getPos(i, j) == 0) {
-                    possibleMoves.add(new Point(i, j));
-                }
-            }
-        }
-        return possibleMoves;
-    }
+    return value;
+}
 
     /**
-     * Ens avisa que hem de parar la cerca en curs perquè s'ha exhaurit el temps de joc.
+     * Obtiene una lista de movimientos posibles priorizando los más cercanos al centro.
+     *
+     * @param s Estado actual del juego.
+     * @return Lista de puntos posibles para jugar, ordenados por proximidad al centro.
+     */
+private List<PointDist> getPossibleMoves(HexGameStatus s) {
+    List<PointDist> possibleMovesWithHeuristics = new ArrayList<>();
+    for (int i = 0; i < s.getSize(); i++) {
+        for (int j = 0; j < s.getSize(); j++) {
+            if (s.getPos(i, j) == 0) { // Solo considerar celdas vacías
+                Point currentPoint = new Point(i, j);
+                PointDist heuristicResult = Heuristic.h(s, currentPoint); // Calcula heurística
+                possibleMovesWithHeuristics.add(heuristicResult); // Agrega el resultado
+            }
+        }
+    }
+    return possibleMovesWithHeuristics; // Devuelve la lista de PointDist
+}
+
+
+
+    /**
+     * Notifica que el tiempo de búsqueda ha terminado.
      */
     @Override
     public void timeout() {
-        System.out.print("Se acaba el tiempo");
+        System.out.println("Timeout alcanzado.");
         TimeFlag = true;
     }
 
     /**
-     * Retorna el nom del jugador que s'utlilitza per visualització a la UI
+     * Devuelve el nombre del jugador para la visualización.
      *
-     * @return Nom del jugador
+     * @return Nombre del jugador.
      */
     @Override
     public String getName() {
-        return "Winner Player";
+        return "Center-Focused Player";
     }
 }
