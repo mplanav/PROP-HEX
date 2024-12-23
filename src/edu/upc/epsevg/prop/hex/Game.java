@@ -25,9 +25,9 @@ public class Game {
             @Override
             public void run() {
                 
-                IPlayer player1 = new H_E_X_Player(2/*GB*/);
+                //IPlayer player1 = new H_E_X_Player(2/*GB*/);
                 
-                //IPlayer player1 = new RandomPlayer("perdedor");
+                IPlayer player1 = new RandomPlayer("perdedor");
                 
                 //IPlayer player2 = new H_E_X_Player(2/*GB*/);
                 
@@ -35,9 +35,9 @@ public class Game {
                 
                 //IPlayer player1 = new MyPlayer(4);
                 
-                IPlayer player2 = new MyPlayer("Winner", 4);
+                IPlayer player2 = new MyPlayer("Winner", 4, true);
                                 
-                new Board(player1 , player2, 5 /*mida*/,  10/*s*/, false);
+                new Board(player1 , player2, 5 /*mida*/,  5/*s*/, false);
              }
         });
     }

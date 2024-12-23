@@ -21,13 +21,15 @@ public class MyPlayer implements IPlayer, IAuto {
 
     private String _name;
     private long _exploredNodes;
-    private boolean TimeFlag = false;
+    private boolean _IDS;
+    private boolean _timeout = false;
     private int _depth;
     private PlayerType _myPlayer;
 
-    public MyPlayer(String name, int depth) {
+    public MyPlayer(String name, int depth, boolean IDS) {
         this._name = name;
         this._depth = depth;
+        this._IDS = IDS;
     }
 
     /**
@@ -40,36 +42,71 @@ public class MyPlayer implements IPlayer, IAuto {
 public PlayerMove move(HexGameStatus s) {
     _exploredNodes = 0;
     _myPlayer = s.getCurrentPlayer();
-    int alpha = Integer.MIN_VALUE;
-    int beta = Integer.MAX_VALUE;
-
-    // Obtener todos los movimientos posibles
-    List<PointDist> possibleMoves = getPossibleMoves(s);
+    _timeout = false;
+    SearchType ST;
 
     PointDist bestMove = null;
     int bestValue = Integer.MIN_VALUE;
-
-    // Evaluar cada movimiento con minimax
-    for (PointDist move : possibleMoves) {
-        HexGameStatus newS = new HexGameStatus(s);
-        newS.placeStone(move._point);
-
-        int value = minimax(newS, _depth - 1, false, alpha, beta, move._point);
-
-        if (value > bestValue) {
-            bestValue = value;
-            bestMove = move;
+   
+    if(_IDS)
+    {
+        int depth = 1;
+        ST = SearchType.MINIMAX_IDS;
+        while(!_timeout)
+        {
+            PointDist currentBestMove = null;
+            int currentBestValue = Integer.MIN_VALUE;
+            
+            List<PointDist> possibleMoves = getPossibleMoves(s);
+            for(PointDist move : possibleMoves)
+            {
+                HexGameStatus auxStatus = new HexGameStatus(s);
+                auxStatus.placeStone(move._point);
+                
+                int value = minimax(auxStatus, depth, false, Integer.MIN_VALUE, Integer.MAX_VALUE, move._point);
+                
+                if(value > currentBestValue)
+                {
+                    currentBestValue = value;
+                    currentBestMove = move;
+                }
+                if(_timeout) break;
+            }
+            
+            if(!_timeout)
+            {
+                bestValue = currentBestValue;
+                bestMove = currentBestMove;
+                depth++;
+            }
         }
-
-        if (TimeFlag) break; // Salir si se agota el tiempo
     }
-
-    // Retornar el mejor movimiento encontrado
-    if (bestMove != null) {
-        return new PlayerMove(bestMove._point, _exploredNodes, _depth, SearchType.MINIMAX);
+    else 
+    {
+        ST = SearchType.MINIMAX;
+        List<PointDist> possibleMoves = getPossibleMoves(s);
+        for(PointDist move : possibleMoves)
+        {
+            HexGameStatus auxStatus = new HexGameStatus(s);
+            auxStatus.placeStone(move._point);
+            
+            int value = minimax(auxStatus, _depth-1, false, Integer.MIN_VALUE, Integer.MAX_VALUE, move._point);
+            
+            if(value > bestValue)
+            {
+                bestValue = value;
+                bestMove = move;
+            }
+        }
     }
-
-    // Si no hay movimientos posibles, devolver null (debería ser improbable)
+    if(bestMove != null)
+        if(bestMove != null)
+            return new PlayerMove(
+                    bestMove._point,
+                    _exploredNodes,
+                    _depth-1,
+                    SearchType.MINIMAX_IDS
+            );
     return null;
 }
 
@@ -85,7 +122,7 @@ public PlayerMove move(HexGameStatus s) {
      * @return Valor heurístico del mejor movimiento.
      */
 public int minimax(HexGameStatus s, int depth, boolean maximizing, int alpha, int beta, Point currentPoint) {
-    if (s.isGameOver() || depth == 0 || TimeFlag) {
+    if (s.isGameOver() || depth == 0 || _timeout) {
         if (s.isGameOver()) {
             if (s.GetWinner() == PlayerType.PLAYER2) return 10000;
             else if (s.GetWinner() == PlayerType.PLAYER1) return -10000;
@@ -137,18 +174,6 @@ private List<PointDist> getPossibleMoves(HexGameStatus s) {
     }
     return possibleMovesWithHeuristics; // Devuelve la lista de PointDist
 }
-
-
-
-    /**
-     * Notifica que el tiempo de búsqueda ha terminado.
-     */
-    @Override
-    public void timeout() {
-        System.out.println("Timeout alcanzado.");
-        TimeFlag = true;
-    }
-
     /**
      * Devuelve el nombre del jugador para la visualización.
      *
@@ -156,6 +181,17 @@ private List<PointDist> getPossibleMoves(HexGameStatus s) {
      */
     @Override
     public String getName() {
-        return "Center-Focused Player";
+            return "Center-Focused Player";
+    }  
+
+    /**
+     * Notifica que el tiempo de búsqueda ha terminado.
+     */
+    @Override
+    public void timeout() {
+        System.out.println("Timeout alcanzado.");
+        _timeout = true;
     }
+
+    
 }
