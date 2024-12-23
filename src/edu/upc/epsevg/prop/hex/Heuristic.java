@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 import java.util.PriorityQueue;
 import org.w3c.dom.Node;
@@ -21,7 +23,7 @@ public class Heuristic {
     //status
     HexGameStatus _status;
     PlayerType _player;
-    static Point[] diagonales = {
+    static Point[] diagonals = {
             new Point(1, 1),
             new Point(1, -1),
             new Point(-1, -1),
@@ -122,7 +124,7 @@ public static PointDist h(HexGameStatus s, Point currentPoint) {
     // Calcular distancia Manhattan al centro del tablero
     int distanceToCenter = Math.abs(currentPoint.x - centerX) + Math.abs(currentPoint.y - centerY);
     // Asignar mayor puntuación a los puntos más cercanos al centro
-    int heuristicValue = -distanceToCenter;
+    int heuristicValue = dynamicCosts(s, "center") * (-distanceToCenter);
     
     if (player == PlayerType.PLAYER1) { // Conectar arriba-abajo
         for (int row = 0; row < size; row++) {
@@ -145,13 +147,14 @@ public static PointDist h(HexGameStatus s, Point currentPoint) {
     List<Point> neighbors = getNeighbors(currentPoint.x, currentPoint.y, size);
     for (Point neighbor : neighbors) {
         if (s.getPos(neighbor.x, neighbor.y) == (player == PlayerType.PLAYER1 ? 1 : 2)) {
-            pathScore -= 5; // Incentivar conexión con fichas propias
+            pathScore -= dynamicCosts(s, "connection"); // Incentivar conexión con fichas propias
         }
     }
     
-    heuristicValue -= minDistance + pathScore;
+    heuristicValue -= minDistance * dynamicCosts(s, "distance");
+    heuristicValue -= pathScore;
             
-    for (Point d : diagonales) {
+    for (Point d : diagonals) {
         Point diagonal = new Point(currentPoint.x + d.x, currentPoint.y + d.y);
 
         // Validar directamente en el bucle
@@ -159,17 +162,66 @@ public static PointDist h(HexGameStatus s, Point currentPoint) {
             diagonal.y >= 0 && diagonal.y < s.getSize())
         {
             if (s.getPos(diagonal) == s.getCurrentPlayerColor()) {
-                heuristicValue -= 20;
-            } else {
-                heuristicValue -= 30;
+                heuristicValue -= dynamicCosts(s, "diagonal");
             }
         }
     }
-
+    
+    //Blocking opponent
+    int opMinDist = Integer.MAX_VALUE;
+    PlayerType op = (player == PlayerType.PLAYER1) ? PlayerType.PLAYER2 : PlayerType.PLAYER1;
+    int[][] opCosts = generateCostsOp(s, op);
+    
+    if(op == PlayerType.PLAYER1) //bloqueamos de arriba-abajo
+    {
+        for (int row = 0; row < size; row++) {
+                PointDist dest = new PointDist(new Point(row, size - 1), 0);
+                int distance = dijkstra(opCosts, size, new PointDist(currentPoint, 0), dest, op);
+                if (distance < opMinDist) {
+                    opMinDist = distance;
+                }
+            }
+    } 
+    else // Bloquear izquierda-derecha
+    { 
+        for (int col = 0; col < size; col++) 
+        {
+            PointDist dest = new PointDist(new Point(size - 1, col), 0);
+            int distance = dijkstra(opCosts, size, new PointDist(currentPoint, 0), dest, op);
+            if (distance < opMinDist)  opMinDist = distance;
+        }
+    }
+    
+    heuristicValue += opMinDist * dynamicCosts(s, "block");
+    
+    int VirtualcConnections = identifyVC(s, currentPoint, player) /2; //Reducimos su bonus
+    heuristicValue += VirtualcConnections;
     return new PointDist(currentPoint, heuristicValue);
 }
 
-    
+    private static int identifyVC(HexGameStatus s, Point current, PlayerType player)
+    {
+        int size = s.getSize();
+        Set<Point> visited = new HashSet<>();
+        List<Point> border = new ArrayList<>();
+        border.add(current);
+        int VCScore = 0;
+        
+        while(!border.isEmpty())
+        {
+            Point p = border.remove(0);
+            visited.add(p);
+            
+            for(Point neighbor : getNeighbors(p.x, p.y, size))
+            {
+                if(!visited.contains(neighbor) && s.getPos(neighbor.x, neighbor.y) == 0)
+                    border.add(neighbor);
+                else if(s.getPos(neighbor.x, neighbor.y) == (player == PlayerType.PLAYER1 ? 1 : -1))
+                    VCScore += dynamicCosts(s, "virtualConnection");
+            }
+        }
+        return VCScore;
+    }
     private static int[][] generateCosts(HexGameStatus s)
     {
        int size = s.getSize();
@@ -189,6 +241,26 @@ public static PointDist h(HexGameStatus s, Point currentPoint) {
            }
        }
        return costs;
+    }
+    
+    private static int[][] generateCostsOp(HexGameStatus s, PlayerType player)
+    {
+        int size = s.getSize();
+        int my = (player == PlayerType.PLAYER2) ? -1 : 1;
+        int op = -my;
+        
+        int costs[][] = new int[size][size];
+        for(int i = 0; i < size; i++)
+        {
+            for(int j = 0; j < size; j++)
+            {
+                int cell = s.getPos(i, j);
+                if(cell == my) costs[i][j] = 0;
+                else if(cell == op) costs[i][j] = 100000;
+                else costs[i][j] = 1;
+            }
+        }
+        return costs;
     }
     
     private static int dijkstra(int[][] costs, int size, PointDist source, PointDist dest, PlayerType player)
@@ -251,6 +323,43 @@ public static PointDist h(HexGameStatus s, Point currentPoint) {
                 neighbors.add(new Point(nbX, nbY));
         }
         return neighbors;
+    }
+    
+    private static int dynamicCosts(HexGameStatus s, String type)
+    {
+        int movesDone = calculateMovesBoard(s);
+        int size = s.getSize();
+        int gamePhase = movesDone < (size * size / 3) ? 0 : (movesDone < (2 * size * size / 3) ? 1 : 2);
+        
+        switch(type)
+        {
+            case "center":
+                return (gamePhase == 0) ? 10 : (gamePhase == 1) ? 5 : 1;
+            case "distance":
+                return (gamePhase == 0) ? 1 : (gamePhase == 1) ? 5 : 10;
+            case "connection":
+                return (gamePhase == 0) ? 5 : (gamePhase == 1) ? 10 : 15;
+            case "diagonal":
+                return 5;
+            case "block":
+                return (gamePhase == 0) ? 15 : (gamePhase == 1) ? 15 : 10;
+            case "virtualConnection":
+                return (gamePhase == 0) ? 10 : (gamePhase == 1) ? 10 : 5;
+            default: return 1;
+        }
+    }
+    
+    private static int calculateMovesBoard(HexGameStatus s)
+    {
+        int count = 0; 
+        for (int i = 0; i < s.getSize(); i++)
+        {
+            for(int j = 0; j < s.getSize(); j++)
+            {
+                if(s.getPos(i,j) != 0) count++;
+            }
+        }
+        return count;
     }
     
     /*
