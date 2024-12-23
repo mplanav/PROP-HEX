@@ -21,6 +21,13 @@ public class Heuristic {
     //status
     HexGameStatus _status;
     PlayerType _player;
+    static Point[] diagonales = {
+            new Point(1, 1),
+            new Point(1, -1),
+            new Point(-1, -1),
+            new Point(-1, 1)
+        };
+        
     
     public Heuristic(HexGameStatus status, PlayerType player)
     {
@@ -106,12 +113,58 @@ public static PointDist h(HexGameStatus s, Point currentPoint) {
     int size = s.getSize();
     int centerX = size / 2;
     int centerY = size / 2;
+    
+    int[][] costs = generateCosts(s);
+    PlayerType player = s.getCurrentPlayer();
+    int pathScore = 0; // Puntaje adicional para conectar con otras fichas
+    int minDistance = Integer.MAX_VALUE;
 
     // Calcular distancia Manhattan al centro del tablero
     int distanceToCenter = Math.abs(currentPoint.x - centerX) + Math.abs(currentPoint.y - centerY);
-
     // Asignar mayor puntuación a los puntos más cercanos al centro
     int heuristicValue = -distanceToCenter;
+    
+    if (player == PlayerType.PLAYER1) { // Conectar arriba-abajo
+        for (int row = 0; row < size; row++) {
+            PointDist dest = new PointDist(new Point(row, size - 1), 0);
+            int distance = dijkstra(costs, size, new PointDist(currentPoint, 0), dest, player);
+            if (distance < minDistance) {
+                minDistance = distance;
+            }
+        }
+    } else { // Conectar izquierda-derecha
+        for (int col = 0; col < size; col++) {
+            PointDist dest = new PointDist(new Point(size - 1, col), 0);
+            int distance = dijkstra(costs, size, new PointDist(currentPoint, 0), dest, player);
+            if (distance < minDistance) {
+                minDistance = distance;
+            }
+        }
+    }
+    // Evaluar conexión con otras fichas del jugador
+    List<Point> neighbors = getNeighbors(currentPoint.x, currentPoint.y, size);
+    for (Point neighbor : neighbors) {
+        if (s.getPos(neighbor.x, neighbor.y) == (player == PlayerType.PLAYER1 ? 1 : 2)) {
+            pathScore -= 5; // Incentivar conexión con fichas propias
+        }
+    }
+    
+    heuristicValue -= minDistance + pathScore;
+            
+    for (Point d : diagonales) {
+        Point diagonal = new Point(currentPoint.x + d.x, currentPoint.y + d.y);
+
+        // Validar directamente en el bucle
+        if (diagonal.x >= 0 && diagonal.x < s.getSize() &&
+            diagonal.y >= 0 && diagonal.y < s.getSize())
+        {
+            if (s.getPos(diagonal) == s.getCurrentPlayerColor()) {
+                heuristicValue -= 20;
+            } else {
+                heuristicValue -= 30;
+            }
+        }
+    }
 
     return new PointDist(currentPoint, heuristicValue);
 }
