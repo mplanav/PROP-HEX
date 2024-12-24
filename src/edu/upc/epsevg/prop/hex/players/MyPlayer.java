@@ -13,6 +13,9 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 /**
  * Jugador con heurística modificada para favorecer posiciones cercanas al centro.
@@ -25,6 +28,8 @@ public class MyPlayer implements IPlayer, IAuto {
     private boolean _timeout = false;
     private int _depth;
     private PlayerType _myPlayer;
+    private Map<Long, Integer> transpositionTable = new HashMap<>();
+    private static long[][][] zbTable;
 
     public MyPlayer(String name, int depth, boolean IDS) {
         this._name = name;
@@ -43,73 +48,113 @@ public PlayerMove move(HexGameStatus s) {
     _exploredNodes = 0;
     _myPlayer = s.getCurrentPlayer();
     _timeout = false;
-    SearchType ST;
+
+    if(zbTable == null) initZbTable(s.getSize());
 
     PointDist bestMove = null;
     int bestValue = Integer.MIN_VALUE;
-   
-    if(_IDS)
+    int depth = 1;
+    SearchType st = _IDS ? SearchType.MINIMAX_IDS : SearchType.MINIMAX;
+    
+    while(_IDS && !_timeout)
     {
-        int depth = 1;
-        ST = SearchType.MINIMAX_IDS;
-        while(!_timeout)
-        {
-            PointDist currentBestMove = null;
-            int currentBestValue = Integer.MIN_VALUE;
-            
-            List<PointDist> possibleMoves = getPossibleMoves(s);
-            for(PointDist move : possibleMoves)
-            {
-                HexGameStatus auxStatus = new HexGameStatus(s);
-                auxStatus.placeStone(move._point);
-                
-                int value = minimax(auxStatus, depth, false, Integer.MIN_VALUE, Integer.MAX_VALUE, move._point);
-                
-                if(value > currentBestValue)
-                {
-                    currentBestValue = value;
-                    currentBestMove = move;
-                }
-                if(_timeout) break;
-            }
-            
-            if(!_timeout)
-            {
-                bestValue = currentBestValue;
-                bestMove = currentBestMove;
-                depth++;
-            }
-        }
+        bestMove = search(s, depth);
+        depth++;
     }
-    else 
+    
+    if(!_IDS) bestMove = search(s, _depth);
+        
+    if(bestMove == null)
     {
-        ST = SearchType.MINIMAX;
         List<PointDist> possibleMoves = getPossibleMoves(s);
-        for(PointDist move : possibleMoves)
-        {
-            HexGameStatus auxStatus = new HexGameStatus(s);
-            auxStatus.placeStone(move._point);
-            
-            int value = minimax(auxStatus, _depth-1, false, Integer.MIN_VALUE, Integer.MAX_VALUE, move._point);
-            
-            if(value > bestValue)
-            {
-                bestValue = value;
-                bestMove = move;
-            }
-        }
+        bestMove = possibleMoves.isEmpty() ? null : possibleMoves.get((int)(Math.random() * possibleMoves.size()));
     }
-    if(bestMove != null)
-        if(bestMove != null)
-            return new PlayerMove(
-                    bestMove._point,
-                    _exploredNodes,
-                    _depth-1,
-                    SearchType.MINIMAX_IDS
-            );
-    return null;
+    
+    return new PlayerMove(
+        bestMove._point,
+        _exploredNodes,
+        _IDS ? _depth -1 : _depth,
+        st);
 }
 
+private PointDist search(HexGameStatus s, int depth)
+{
+    List<PointDist> possibleMoves = getPossibleMoves(s);
+    possibleMoves.sort((a, b) -> {
+       int heuristicA = Heuristic.h(s, a._point)._cost;
+       int heuristicB = Heuristic.h(s, b._point)._cost;
+       return Integer.compare(heuristicB, heuristicA);
+    });
+    
+    int alpha = Integer.MIN_VALUE;
+    int beta = Integer.MAX_VALUE;
+    PointDist bestMove = null;
+    int bestValue = Integer.MIN_VALUE;
+    
+    for(int i = 0; i < possibleMoves.size(); i++)
+    {
+        if(_IDS && _timeout) break;
+        PointDist move = possibleMoves.get(i);
+        HexGameStatus auxStatus = new HexGameStatus(s);
+        auxStatus.placeStone(move._point);
+        
+        long hash = hashing(auxStatus);
+        int value;
+        
+        if(transpositionTable.containsKey(hash))
+            value = transpositionTable.get(hash);
+        else 
+        {
+            int reduction = (i >= 3) ? 1 : 0;
+            value = minimax(auxStatus, depth -1 -reduction, false, alpha, beta, move._point);
+            transpositionTable.put(hash, value);
+        }
+        
+        if(value > bestValue)
+        {
+            bestValue = value;
+            bestMove = move;
+        }
+        alpha = Math.max(alpha, bestValue);
+        if(alpha >= beta) break;
+    }
+    return bestMove;
+}
+
+private void initZbTable(int size)
+{
+    Random rand = new Random(123456789);
+    zbTable = new long[size][size][3];
+    for(int i = 0; i < size; i++)
+    {
+        for(int j = 0; j < size; j++)
+        {
+            for(int player = 0; player < 3; player++)
+            {
+                zbTable[i][j][player] = rand.nextLong();
+            }
+        }
+    }
+}
+
+private long hashing(HexGameStatus s)
+{
+    long hash = 0L;
+    int size = s.getSize();
+    for(int i = 0; i < size; i++)
+    {
+        for(int j = 0; j < size; j++)
+        {
+            int value = s.getPos(i,j);
+            if(value != 0)
+            {
+                int pi = (value == 1) ? 1 : -1;
+                hash ^= zbTable[i][j][pi];
+            }
+        }
+    }
+    return hash;
+}
     /**
      * Implementación del algoritmo Minimax con poda alfa-beta.
      *
@@ -134,12 +179,24 @@ public int minimax(HexGameStatus s, int depth, boolean maximizing, int alpha, in
     int value = maximizing ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
     List<PointDist> possibleMoves = getPossibleMoves(s);
+    
+    possibleMoves.sort((a, b) -> {
+        int heuristicA = Heuristic.h(s, a._point)._cost;
+        int heuristicB = Heuristic.h(s, b._point)._cost;
+        return Integer.compare(heuristicB, heuristicA); // Mayor a menor
+    });
+    
+    int moveI = 0; //index current movement
+    int thresold = 5; // thresold to apply reduction
 
     for (PointDist movement : possibleMoves) {
         HexGameStatus newS = new HexGameStatus(s);
         newS.placeStone(movement._point);
+        
+        int reduction = (moveI >= thresold) ? 1 : 0;
+        moveI++;
 
-        int eval = minimax(newS, depth - 1, !maximizing, alpha, beta, movement._point);
+        int eval = minimax(newS, depth - 1 - reduction, !maximizing, alpha, beta, movement._point);
 
         if (maximizing) {
             value = Math.max(value, eval);
