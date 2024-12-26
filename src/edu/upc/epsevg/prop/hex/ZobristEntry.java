@@ -30,10 +30,10 @@ public class ZobristEntry {
     public static final int lower_lim = 1;
     public static final int upper_lim = 2;
     
-    private int _value;
-    private int _depth;
-    private int _limStatus;
-    private PointDist _bestMove;
+    public int _value;
+    public int _depth;
+    public int _limStatus;
+    public PointDist _bestMove;
     
     public ZobristEntry(int value, int depth, int limit, PointDist move)
     {

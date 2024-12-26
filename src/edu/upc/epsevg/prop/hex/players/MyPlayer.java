@@ -31,6 +31,7 @@ public class MyPlayer implements IPlayer, IAuto {
     private PlayerType _myPlayer;
     private Map<Long, ZobristEntry> zobristTable = new HashMap<>();
     private static long[][][] _table;
+    private Point bestParcialMove;
 
     public MyPlayer(String name, int depth, boolean IDS) {
         this._name = name;
@@ -49,17 +50,22 @@ public PlayerMove move(HexGameStatus s) {
     _exploredNodes = 0;
     _timeout = false;
     _myPlayer = s.getCurrentPlayer();
-    
     if(_table == null) initZbTable(s.getSize());
     
     List<PointDist> possibleMoves = getPossibleMoves(s);
+    for(int i = 0; i < possibleMoves.size(); i++) 
     if(possibleMoves.isEmpty()) return new PlayerMove(
                                                 null,
                                                 _exploredNodes,
                                                 _depth,
                                                 SearchType.MINIMAX);
     
-    if(_IDS) return IDSearch(s, possibleMoves);
+    
+    if(_IDS) 
+    {
+        PlayerMove move = IDSearch(s, possibleMoves);
+        return move;
+    }
     else return new PlayerMove(search(s, possibleMoves)._point, _exploredNodes, _depth, SearchType.MINIMAX);
 }
 
@@ -67,26 +73,30 @@ private PlayerMove IDSearch(HexGameStatus s, List<PointDist> moves)
 {
     Point bestMove =null;
     int bestValue = Integer.MIN_VALUE;
-    int depth = 1;
+    int depth = 0;
     while(!_timeout)
     {
+        depth++;
         List<PointDist> possibleMoves = new ArrayList<>(moves);
         long hash = hashing(s);
         ZobristEntry zobrist = zobristTable.get(hash);
-        if (zobrist != null && zobrist.getBestMove() != null && possibleMoves.contains(zobrist.getBestMove())) {
-            possibleMoves.remove(zobrist.getBestMove());
-            possibleMoves.add(0, zobrist.getBestMove()); // Priorizar el mejor movimiento previo
+        if (zobrist != null && zobrist._bestMove != null && possibleMoves.contains(zobrist.getBestMove())) {
+            possibleMoves.remove(zobrist._bestMove);
+            possibleMoves.add(0, zobrist._bestMove); // Priorizar el mejor movimiento previo
         }
         
         int alpha = Integer.MIN_VALUE;
         int beta = Integer.MAX_VALUE;
         PointDist newBm = null;
         int newBv = Integer.MIN_VALUE;
-        
+        int i = 0;
         for(PointDist move : possibleMoves)
         {
+            i++;
+            if(_timeout) return new PlayerMove(newBm._point != null ? newBm._point : moves.get(0)._point, _exploredNodes, depth - 1, SearchType.MINIMAX_IDS);
             HexGameStatus auxStatus = new HexGameStatus(s);
             auxStatus.placeStone(move._point);
+            _exploredNodes++;
             int value = minimax(auxStatus, depth-1, false, alpha, beta, move._point);
             if(value > newBv)
             {
@@ -99,11 +109,10 @@ private PlayerMove IDSearch(HexGameStatus s, List<PointDist> moves)
         }
         if(!_timeout) 
         {
-            bestMove = newBm != null ? newBm._point : bestMove;
+            bestMove = (newBm != null) ? newBm._point : bestMove;
             bestValue = newBv;
-            depth++;
         }
-        else break;
+        else if(_timeout) return new PlayerMove(newBm._point != null ? newBm._point : moves.get(0)._point, _exploredNodes, depth - 1, SearchType.MINIMAX_IDS);
     }
     if(bestMove == null && !moves.isEmpty()) bestMove = moves.get(0)._point;
     return new PlayerMove(bestMove, _exploredNodes, depth, SearchType.MINIMAX_IDS);
@@ -158,13 +167,13 @@ public int minimax(HexGameStatus s, int depth, boolean maximizing, int alpha, in
     if(depth == 0 || s.isGameOver() || _timeout)
     {
         _exploredNodes++;
-        return Heuristic.h(s,current)._cost;
+        return Heuristic.h2(s,current)._cost;
     }
     
     List<PointDist> possibleMoves = getPossibleMoves(s);
     possibleMoves.sort((a, b) -> {
-        int heuristicA = Heuristic.h(s, a._point)._cost;
-        int heuristicB = Heuristic.h(s, b._point)._cost;
+        int heuristicA = Heuristic.h2(s, a._point)._cost;
+        int heuristicB = Heuristic.h2(s, b._point)._cost;
         return Integer.compare(heuristicB, heuristicA);
     });
     
@@ -231,17 +240,21 @@ private long hashing(HexGameStatus s)
      * @return Lista de puntos posibles para jugar, ordenados por proximidad al centro.
      */
 private List<PointDist> getPossibleMoves(HexGameStatus s) {
-    List<PointDist> possibleMovesWithHeuristics = new ArrayList<>();
-    for (int i = 0; i < s.getSize(); i++) {
-        for (int j = 0; j < s.getSize(); j++) {
-            if (s.getPos(i, j) == 0) { // Solo considerar celdas vacías
-                Point currentPoint = new Point(i, j);
-                PointDist heuristicResult = Heuristic.h(s, currentPoint); // Calcula heurística
-                possibleMovesWithHeuristics.add(heuristicResult); // Agrega el resultado
+    List<PointDist> possibleMoves = new ArrayList<>();
+    for(int i = 0; i < s.getSize(); i++)
+    {
+        for(int j = 0; j < s.getSize(); j++)
+        {
+            if(s.getPos(i,j) == 0)
+            {
+                Point current = new Point(i,j);
+                PointDist hResult = Heuristic.h2(s, current);
+                possibleMoves.add(hResult);
             }
         }
     }
-    return possibleMovesWithHeuristics; // Devuelve la lista de PointDist
+    possibleMoves.sort(Comparator.comparingInt(a -> -a._cost));
+    return possibleMoves;
 }
 
 private void saveZobrist(long hash, int depth, int v, int alpha, int beta, PointDist bestMove)

@@ -42,6 +42,21 @@ public class Heuristic {
         
     }
     
+    public static PointDist h2(HexGameStatus s, Point p)
+    {
+        int size = s.getSize();
+        int centerX = size / 2;
+        int centerY = size / 2;
+
+        // Calcula la distancia manhattan al centro
+        int distanceToCenter = Math.abs(p.x - centerX) + Math.abs(p.y - centerY);
+
+        // Asigna un valor mayor cuanto más cerca esté del centro
+        int heuristicValue = size - distanceToCenter;
+
+        return new PointDist(p, heuristicValue);
+    }
+    
     /*public static int center(HexGameStatus s) {
     int size = s.getSize();
     int centerX = size / 2;
