@@ -19,20 +19,32 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * Jugador con heurística modificada para favorecer posiciones cercanas al centro.
+ * @author Marc Plana y Víctor Rubio
+ *  * 
+ * La clase MyPlayer implementa un jugador para Hex, utiliza estrategias 
+ * como Minimax con poda alfa-beta, Dijkstra o optimizaciones basadas en claves 
+ * Zobrist y admite búqeda iterativa en profundidad (IDS)
  */
 public class MyPlayer implements IPlayer, IAuto {
 
-    private String _name;
-    private long _exploredNodes;
-    private boolean _IDS;
-    private boolean _timeout = false;
-    private int _depth;
-    private PlayerType _myPlayer;
-    private Map<Long, ZobristEntry> zobristTable = new HashMap<>();
-    private static long[][][] _table;
-    private Point bestParcialMove;
+    //Atributos de la clase
+    private String _name; //Nombre del jugador
+    private long _exploredNodes; // Contador de los nodos explorados
+    private boolean _IDS; //Indicador de si la busqueda es con IDS o no
+    private boolean _timeout = false; // Flag que indica si el tiempo de búsqueda ha expirado
+    private int _depth; //Profundidad máxima en la que el minimax bajará
+    private PlayerType _myPlayer; //Tipo de jugador (PLAYER1 o PLAYER2)
+    private Map<Long, ZobristEntry> zobristTable = new HashMap<>(); //Tabla zobrist para almacenamiento eficiente de los estados del tablero
+    private static long[][][] _table; //Tabla estática para a genereción de claves zobrist
 
+    
+    /**
+     * Constructor de la clase MyPlayer.
+     *
+     * @param name Nombre del jugador.
+     * @param depth Profundidad máxima de la búsqueda.
+     * @param IDS Indica si se debe realizar búsqueda iterativa en profundidad.
+     */
     public MyPlayer(String name, int depth, boolean IDS) {
         this._name = name;
         this._depth = depth;
@@ -40,10 +52,10 @@ public class MyPlayer implements IPlayer, IAuto {
     }
 
     /**
-     * Decide el movimiento del jugador dado un tablero y el color de la pieza.
+     * Decide el movimiento del jugador en la siguiente jugada dado un tablero.
      *
-     * @param s Tablero y estado actual del juego.
-     * @return el movimiento que realiza el jugador.
+     * @param s Tablero que contiende el estado actual del juego.
+     * @return Un PlayerMove, que será el próximo movimiento del jugador
      */
     @Override
 public PlayerMove move(HexGameStatus s) {
@@ -69,6 +81,14 @@ public PlayerMove move(HexGameStatus s) {
     else return new PlayerMove(search(s, possibleMoves)._point, _exploredNodes, _depth, SearchType.MINIMAX);
 }
 
+
+/**
+ * Método para encontrar el mejor movimiento con el tipo de búsqueda minimax_ids
+ * 
+ * @param s Tablero que contiende el estado actual del juego.
+ * @param moves Lista de elementos PointDist que almacena todos los movimientos posibles
+ * @return Un PlayerMove, que será el próximo movimiento del jugador
+ */
 private PlayerMove IDSearch(HexGameStatus s, List<PointDist> moves)
 {
     Point bestMove =null;
@@ -115,6 +135,13 @@ private PlayerMove IDSearch(HexGameStatus s, List<PointDist> moves)
     return new PlayerMove(bestMove, _exploredNodes, depth, SearchType.MINIMAX_IDS);
 }
 
+/**
+ * Método para encontrar el mejor movimiento con el tipo de búsqueda minimax
+ * 
+ * @param s Tablero que contiende el estado actual del juego.
+ * @param moves Lista de elementos PointDist que almacena todos los movimientos posibles
+ * @return Un PlayerMove, que será el próximo movimiento del jugador
+ */
 private PointDist search(HexGameStatus s, List<PointDist> moves)
 {
     long hash = hashing(s);
@@ -195,6 +222,13 @@ public int minimax(HexGameStatus s, int depth, boolean maximizing, int alpha, in
     return value;
 }
 
+
+/**
+ * Inicializa la tabla Zobrist utilizada para calcular valores hash 
+ * para cada estado diferente de tablero
+ * 
+ * @param size Tamaño del tablero actual
+ */
 private void initZbTable(int size)
 {
     Random rand = new Random(123456789);
@@ -211,6 +245,15 @@ private void initZbTable(int size)
     }
 }
 
+
+/**
+ * Cálculo de valor hash para el estado actual del tablero. Este hash se usará
+ * para identificar de manera más rápida estados del juego, aprovechando la tabla
+ * zobrist que habremos inicializado antes
+ * 
+ * @param s Tablero que contiende el estado actual del juego.
+ * @return Un valor hash que representa el estado actual del tablero
+ */
 private long hashing(HexGameStatus s)
 {
     long hash = 0L;
@@ -231,10 +274,11 @@ private long hashing(HexGameStatus s)
 }
 
     /**
-     * Obtiene una lista de movimientos posibles priorizando los más cercanos al centro.
+     * Genera una lista de movimientos posibles en el tablero actual, priorizando
+     * los que tengan un mayor valor heurístico
      *
-     * @param s Estado actual del juego.
-     * @return Lista de puntos posibles para jugar, ordenados por proximidad al centro.
+     * @param s Tablero que contiende el estado actual del juego.
+     * @return Lista de moviemientos posibles por su valor heurístico en el tablero
      */
 private List<PointDist> getPossibleMoves(HexGameStatus s) {
     List<PointDist> possibleMoves = new ArrayList<>();
@@ -254,6 +298,18 @@ private List<PointDist> getPossibleMoves(HexGameStatus s) {
     return possibleMoves;
 }
 
+
+/**
+ * Guarda una entrada en la tabla zobrist con tal de optimizar futuras evaluaciones
+ * del tablero.
+ * 
+ * @param hash valor unico que representará el estado actual del juego
+ * @param depth profundidad alcanzada durante la búsqueda
+ * @param v valor heuristico asociado al estado
+ * @param alpha valor de la poda alfa usada en la búsqueda
+ * @param beta valor de la poda beta usada en la búsqueda
+ * @param bestMove mejor movimiento encontrado para este estado
+ */
 private void saveZobrist(long hash, int depth, int v, int alpha, int beta, PointDist bestMove)
 {
     int limit;
