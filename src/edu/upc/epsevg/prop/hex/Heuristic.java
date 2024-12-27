@@ -372,9 +372,13 @@ public static PointDist h(HexGameStatus s, Point currentPoint) {
             
             for(Point nb : getNeighbors(current._point.x, current._point.y, size))
             {
-                if(!visited[nb.x][nb.y] && costs[nb.x][nb.y] < 100000)
+                if(!visited[nb.x][nb.y])
                 {
-                    int auxCost = distances[current._point.x][current._point.y] + costs[nb.x][nb.y];
+                    int baseCost = costs[nb.x][nb.y];
+                    int auxCost = distances[current._point.x][current._point.y] + baseCost;
+                    
+                    if(baseCost >= 100000) auxCost += 2;
+                    if(baseCost == 0) auxCost -= 1;
                     if(auxCost < distances[nb.x][nb.y])
                     {
                         distances[nb.x][nb.y] = auxCost;
