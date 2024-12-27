@@ -89,14 +89,11 @@ private PlayerMove IDSearch(HexGameStatus s, List<PointDist> moves)
         int beta = Integer.MAX_VALUE;
         PointDist newBm = null;
         int newBv = Integer.MIN_VALUE;
-        int i = 0;
         for(PointDist move : possibleMoves)
         {
-            i++;
             if(_timeout) return new PlayerMove(newBm._point != null ? newBm._point : moves.get(0)._point, _exploredNodes, depth - 1, SearchType.MINIMAX_IDS);
             HexGameStatus auxStatus = new HexGameStatus(s);
             auxStatus.placeStone(move._point);
-            _exploredNodes++;
             int value = minimax(auxStatus, depth-1, false, alpha, beta, move._point);
             if(value > newBv)
             {

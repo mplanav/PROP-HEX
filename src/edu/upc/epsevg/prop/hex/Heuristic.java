@@ -24,11 +24,14 @@ public class Heuristic {
     HexGameStatus _status;
     PlayerType _player;
     static Point[] diagonals = {
+            new Point(1, -2),
+            new Point(2, -1),
             new Point(1, 1),
-            new Point(1, -1),
+            new Point(-1, 2),
+            new Point(-2, 1),
             new Point(-1, -1),
-            new Point(-1, 1)
         };
+    static int diagonalCount;
         
     
     public Heuristic(HexGameStatus status, PlayerType player)
@@ -42,18 +45,78 @@ public class Heuristic {
         
     }
     
+    public static PointDist h_pruebas(HexGameStatus s, Point p)
+    {
+        int heuristicValue = 0;
+        
+        
+        return new PointDist(p, heuristicValue);
+    }
+    
+    //CONECTAR CAMINOS (IMPLEMENTAR CON CUIDADO)
+    /*
+    int size = s.getSize();
+    List<Point> neighbors = getNeighbors(p.x, p.y, size);
+    int heuristicValue = 0;
+    for (Point neighbor : neighbors){
+        if (s.getPos(neighbor.x, neighbor.y) == (s.getCurrentPlayer() == PlayerType.PLAYER1 ? 1 : 2)) {
+            heuristicValue += dynamicCosts(s, "connection"); // Incentivar conexión con fichas propias
+        }
+    }
+    */
+    
+    //DIJKSTRA
+    /*
+        int size = s.getSize();
+        int[][] costs = generateCosts(s);
+        int minDistance = Integer.MAX_VALUE;
+        
+        if(s.currentPlayer == PlayerType.PLAYER1) { // Conectar arriba-abajo
+            for (int row = 0; row < size; row++) {
+                PointDist dest = new PointDist(new Point(row, size - 1), 0);
+                int distance = dijkstra(costs, size, new PointDist(p, 0), dest, s.currentPlayer);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                }
+            }
+        }
+        
+        int heuristicValue = minDistance;
+    */
+    
     public static PointDist h2(HexGameStatus s, Point p)
     {
+        diagonalCount = 0;
         int size = s.getSize();
         int centerX = size / 2;
         int centerY = size / 2;
 
-        // Calcula la distancia manhattan al centro
+        if(s.getPos(p) != 0) return new PointDist(p, 10000);
+        //int[][] costs = generateCosts(s);
+        PlayerType player = s.getCurrentPlayer();
+        //int pathScore = 0; // Puntaje adicional para conectar con otras fichas
+        int minDistance = Integer.MAX_VALUE;
+
+        // Calcular distancia Manhattan al centro del tablero
         int distanceToCenter = Math.abs(p.x - centerX) + Math.abs(p.y - centerY);
+        // Asignar mayor puntuación a los puntos más cercanos al centro
+        int heuristicValue = dynamicCosts(s, "center") * (-distanceToCenter);
+        
+        for (Point d : diagonals) {
+            if(diagonalCount >= 2) break;
+            Point diagonal = new Point(p.x + d.x, p.y + d.y);
 
-        // Asigna un valor mayor cuanto más cerca esté del centro
-        int heuristicValue = size - distanceToCenter;
-
+            // Validar directamente en el bucle
+            if (p.x + d.x >= 0 && p.x + d.x < s.getSize() &&
+                p.y + d.y >= 0 && p.y + d.y < s.getSize())
+            {
+                if (s.getPos(diagonal) == s.getCurrentPlayerColor()) {
+                    heuristicValue -= dynamicCosts(s, "diagonal");
+                    ++diagonalCount;
+                }
+            }
+        }
+        
         return new PointDist(p, heuristicValue);
     }
     
@@ -349,13 +412,13 @@ public static PointDist h(HexGameStatus s, Point currentPoint) {
         switch(type)
         {
             case "center":
-                return (gamePhase == 0) ? 10 : (gamePhase == 1) ? 5 : 1;
+                return (gamePhase == 0) ? 2 : (gamePhase == 1) ? 1 : 0;
             case "distance":
                 return (gamePhase == 0) ? 1 : (gamePhase == 1) ? 5 : 10;
             case "connection":
                 return (gamePhase == 0) ? 5 : (gamePhase == 1) ? 10 : 15;
             case "diagonal":
-                return 5;
+                return 15;
             case "block":
                 return (gamePhase == 0) ? 15 : (gamePhase == 1) ? 15 : 10;
             case "virtualConnection":
