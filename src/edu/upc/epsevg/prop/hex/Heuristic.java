@@ -32,6 +32,9 @@ public class Heuristic {
             new Point(-1, -1),
         };
     static int diagonalCount;
+    static int opDiagonalCount;
+    static int connectionCount;
+    static int opConnectionCount;
         
     
     public Heuristic(HexGameStatus status, PlayerType player)
@@ -48,7 +51,21 @@ public class Heuristic {
     public static PointDist h_pruebas(HexGameStatus s, Point p)
     {
         int heuristicValue = 0;
+        int size = s.getSize();
+        connectionCount = 0;
+        opConnectionCount = 0;
         
+        List<Point> neighbors = getNeighbors(p.x, p.y, size);
+        for (Point neighbor : neighbors){
+            if (s.getPos(neighbor.x, neighbor.y) == 1 && !(connectionCount >= 2)) {
+                ++connectionCount;
+                heuristicValue += dynamicCosts(s, "connection"); // Incentivar conexión con fichas propias
+            }
+            if (s.getPos(neighbor.x, neighbor.y) == -1 && !(opConnectionCount >= 2)) {
+                ++opConnectionCount;
+                heuristicValue += dynamicCosts(s, "connection"); // Incentivar no conexión del oponente
+            }
+        }
         
         return new PointDist(p, heuristicValue);
     }
@@ -87,6 +104,7 @@ public class Heuristic {
     public static PointDist h2(HexGameStatus s, Point p)
     {
         diagonalCount = 0;
+        connectionCount = 0;        
         int size = s.getSize();
         int centerX = size / 2;
         int centerY = size / 2;
@@ -102,18 +120,35 @@ public class Heuristic {
         // Asignar mayor puntuación a los puntos más cercanos al centro
         int heuristicValue = dynamicCosts(s, "center") * (-distanceToCenter);
         
+        //Miramos si hay bridges posibles en la posición que miramos
         for (Point d : diagonals) {
-            if(diagonalCount >= 2) break;
             Point diagonal = new Point(p.x + d.x, p.y + d.y);
 
             // Validar directamente en el bucle
             if (p.x + d.x >= 0 && p.x + d.x < s.getSize() &&
                 p.y + d.y >= 0 && p.y + d.y < s.getSize())
             {
-                if (s.getPos(diagonal) == s.getCurrentPlayerColor()) {
+                if (s.getPos(diagonal) == 1 && !(diagonalCount >= 2)) {
                     heuristicValue -= dynamicCosts(s, "diagonal");
                     ++diagonalCount;
                 }
+                if (s.getPos(diagonal) == -1 && !(opDiagonalCount >= 2)) {
+                    heuristicValue -= dynamicCosts(s, "diagonal");
+                    ++opDiagonalCount;
+                }
+            }
+        }
+        
+        //Comprobamos las conexiones directas de la posición que miramos
+        List<Point> neighbors = getNeighbors(p.x, p.y, size);
+        for (Point neighbor : neighbors){
+            if (s.getPos(neighbor.x, neighbor.y) == 1 && !(connectionCount >= 2)) {
+                ++connectionCount;
+                heuristicValue += dynamicCosts(s, "connection"); // Incentivar conexión con fichas propias
+            }
+            if (s.getPos(neighbor.x, neighbor.y) == -1 && !(opConnectionCount >= 2)) {
+                ++opConnectionCount;
+                heuristicValue += dynamicCosts(s, "connection"); // Incentivar no conexión del oponente
             }
         }
         
@@ -300,6 +335,7 @@ public static PointDist h(HexGameStatus s, Point currentPoint) {
         }
         return VCScore;
     }
+    
     private static int[][] generateCosts(HexGameStatus s)
     {
        int size = s.getSize();
