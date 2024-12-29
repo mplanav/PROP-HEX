@@ -35,6 +35,10 @@ public class Heuristic {
     static int opDiagonalCount;
     static int connectionCount;
     static int opConnectionCount;
+    static int upBorderCounter;
+    static int downBorderCounter;
+    static int leftBorderCounter;
+    static int rightBorderCounter;
         
     
     public Heuristic(HexGameStatus status, PlayerType player)
@@ -153,7 +157,7 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
         int minDistance = Integer.MAX_VALUE;
         int centerX = size / 2;
         int centerY = size / 2;
-
+        
         dijkstraResult bestResult = null; // Para almacenar el mejor resultado
         
         if (s.getCurrentPlayer() == PlayerType.PLAYER1) { // Conectar arriba-abajo
@@ -179,12 +183,9 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
                 }
             }
         }
-        heuristicValue += minDistance * -3;
+        heuristicValue += minDistance * -10;
         
-        if(s.getPos(p) != 0) 
-        if(bestResult != null && bestResult._shortestPath.size() == 1){
-            return new PointDist(bestResult._shortestPath.get(0)._point, 10000);
-        }
+        
 
         // Calcular distancia Manhattan al centro del tablero
         int distanceToCenter = Math.abs(p.x - centerX) + Math.abs(p.y - centerY);
@@ -211,6 +212,32 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
                     }
                 }
             }
+        }
+        
+        if(p.x == 0 || p.y == 0 || p.x == size-1 || p.y == size-1){
+            leftBorderCounter = 0;
+            rightBorderCounter = 0;   
+            upBorderCounter = 0;
+            downBorderCounter = 0;
+            if(s.getCurrentPlayer() == PlayerType.PLAYER2){
+                for(int i = 0; i < size; i++){
+                    if(s.getPos(0, i) == s.getCurrentPlayerColor()) ++leftBorderCounter;
+                }
+                heuristicValue += 1 * (size-leftBorderCounter);
+                for(int i = 0; i < size; i++){
+                    if(s.getPos(0, i) == s.getCurrentPlayerColor()) ++rightBorderCounter;
+                }
+                heuristicValue += 1 * (size-rightBorderCounter);
+            } else{
+                for(int i = 0; i < size; i++){
+                    if(s.getPos(i, 0) == s.getCurrentPlayerColor()) ++upBorderCounter;
+                }
+                heuristicValue += 1 * (size-upBorderCounter);
+                for(int i = 0; i < size; i++){
+                    if(s.getPos(i, 0) == s.getCurrentPlayerColor()) ++downBorderCounter;
+                }
+                heuristicValue += 1 * (size-downBorderCounter);
+            }  
         }
         
         //Comprobamos las conexiones directas de la posición que miramos
@@ -258,7 +285,7 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
         
         return valid;
     }
-    
+   
     private static int[][] generateCosts(HexGameStatus s)
     {
        int size = s.getSize();
@@ -304,12 +331,13 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
         int movesDone = calculateMovesBoard(s);
         int size = s.getSize();
         int gamePhase = movesDone < (size * size / 3) ? 0 : (movesDone < (2 * size * size / 3) ? 1 : 2);
+        int goCenter = movesDone > 23 ? 1 : 0; 
         
         
         switch(type)
         {
             case "center":
-                return (gamePhase == 0) ? 2 : (gamePhase == 1) ? 1 : 0;
+                return (goCenter == 0) ? 2 : 0;
             case "distance":
                 return (gamePhase == 0) ? 1 : (gamePhase == 1) ? 5 : 10;
             case "connection":
