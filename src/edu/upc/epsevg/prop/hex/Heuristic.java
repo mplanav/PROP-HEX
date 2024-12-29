@@ -55,7 +55,7 @@ public static dijkstraResult h_pruebas(HexGameStatus s, Point p) {
     int minDistance = Integer.MAX_VALUE;
     dijkstraResult bestResult = null; // Para almacenar el mejor resultado
 
-    if (s.currentPlayer == PlayerType.PLAYER1) { // Conectar arriba-abajo
+    if (s.getCurrentPlayer() == PlayerType.PLAYER1) { // Conectar arriba-abajo
         for (int row = 0; row < size; row++) {
             PointDist dest = new PointDist(new Point(row, size - 1), 0);
             dijkstraResult result = dijkstra(costs, size, new PointDist(p, 0), dest, s.currentPlayer);
@@ -66,9 +66,18 @@ public static dijkstraResult h_pruebas(HexGameStatus s, Point p) {
                 bestResult = result; // Guardar el mejor camino
             }
         }
+    } else { // Conectar izquierda-derecha
+        for (int col = 0; col < size; col++) {
+            PointDist dest = new PointDist(new Point(size - 1, col), 0);
+            dijkstraResult result = dijkstra(costs, size, new PointDist(p, 0), dest, s.currentPlayer);
+            
+            // Evaluar si este camino es mejor
+            if (result._cost < minDistance) {
+                minDistance = result._cost;
+                bestResult = result; // Guardar el mejor camino del oponente
+            }
+        }
     }
-
-    
 
     heuristicValue = minDistance;
     return bestResult;
@@ -130,56 +139,57 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
     if (cost == Integer.MAX_VALUE) path.clear(); // Si no hay camino, devolver lista vacía
     return new dijkstraResult(cost, path);
 }
-    
-    //CONECTAR CAMINOS (IMPLEMENTAR CON CUIDADO)
-    /*
-    int size = s.getSize();
-    List<Point> neighbors = getNeighbors(p.x, p.y, size);
-    int heuristicValue = 0;
-    for (Point neighbor : neighbors){
-        if (s.getPos(neighbor.x, neighbor.y) == (s.getCurrentPlayer() == PlayerType.PLAYER1 ? 1 : 2)) {
-            heuristicValue += dynamicCosts(s, "connection"); // Incentivar conexión con fichas propias
-        }
-    }
-    */
-    
-    //DIJKSTRA
-    /*
+
+    public static PointDist h2(HexGameStatus s, Point p)
+    {
+        PlayerType op = (s.getCurrentPlayer() == PlayerType.PLAYER1) ? PlayerType.PLAYER2 : PlayerType.PLAYER1;
+        diagonalCount = 0;
+        opDiagonalCount = 0;
+        connectionCount = 0;
+        opConnectionCount = 0; 
+        int heuristicValue = 0;
         int size = s.getSize();
         int[][] costs = generateCosts(s);
         int minDistance = Integer.MAX_VALUE;
-        
-        if(s.currentPlayer == PlayerType.PLAYER1) { // Conectar arriba-abajo
-            for (int row = 0; row < size; row++) {
-                PointDist dest = new PointDist(new Point(row, size - 1), 0);
-                int distance = dijkstra(costs, size, new PointDist(p, 0), dest, s.currentPlayer);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                }
-            }
-        }
-        
-        int heuristicValue = minDistance;
-    */
-    
-    public static PointDist h2(HexGameStatus s, Point p)
-    {
-        diagonalCount = 0;
-        connectionCount = 0;        
-        int size = s.getSize();
         int centerX = size / 2;
         int centerY = size / 2;
 
-        if(s.getPos(p) != 0) return new PointDist(p, 10000);
-        //int[][] costs = generateCosts(s);
-        PlayerType player = s.getCurrentPlayer();
-        //int pathScore = 0; // Puntaje adicional para conectar con otras fichas
-        int minDistance = Integer.MAX_VALUE;
+        dijkstraResult bestResult = null; // Para almacenar el mejor resultado
+        
+        if (s.getCurrentPlayer() == PlayerType.PLAYER1) { // Conectar arriba-abajo
+            for (int row = 0; row < size; row++) {
+                PointDist dest = new PointDist(new Point(row, size - 1), 0);
+                dijkstraResult myresult = dijkstra(costs, size, new PointDist(p, 0), dest, s.currentPlayer);
+
+                // Evaluar si este camino es mejor
+                if (myresult._cost < minDistance) {
+                    minDistance = myresult._cost;
+                    bestResult = myresult; // Guardar el mejor camino
+                }
+            }
+        } else { // Conectar izquierda-derecha
+            for (int col = 0; col < size; col++) {
+                PointDist dest = new PointDist(new Point(size - 1, col), 0);
+                dijkstraResult opresult = dijkstra(costs, size, new PointDist(p, 0), dest, s.currentPlayer);
+
+                // Evaluar si este camino es mejor
+                if (opresult._cost < minDistance) {
+                    minDistance = opresult._cost;
+                    bestResult = opresult; // Guardar el mejor camino del oponente
+                }
+            }
+        }
+        heuristicValue += minDistance * -3;
+        
+        if(s.getPos(p) != 0) 
+        if(bestResult != null && bestResult._shortestPath.size() == 1){
+            return new PointDist(bestResult._shortestPath.get(0)._point, 10000);
+        }
 
         // Calcular distancia Manhattan al centro del tablero
         int distanceToCenter = Math.abs(p.x - centerX) + Math.abs(p.y - centerY);
         // Asignar mayor puntuación a los puntos más cercanos al centro
-        int heuristicValue = dynamicCosts(s, "center") * (-distanceToCenter);
+        heuristicValue += dynamicCosts(s, "center") * (-distanceToCenter);
         
         //Miramos si hay bridges posibles en la posición que miramos
         for (Point d : diagonals) {
@@ -189,13 +199,16 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
             if (p.x + d.x >= 0 && p.x + d.x < s.getSize() &&
                 p.y + d.y >= 0 && p.y + d.y < s.getSize())
             {
-                if (s.getPos(diagonal) == 1 && !(diagonalCount >= 2)) {
-                    heuristicValue -= dynamicCosts(s, "diagonal");
-                    ++diagonalCount;
-                }
-                if (s.getPos(diagonal) == -1 && !(opDiagonalCount >= 2)) {
-                    heuristicValue -= dynamicCosts(s, "diagonal");
-                    ++opDiagonalCount;
+                boolean valid = validateDiagonal(d, p, s); //Se comprueba que la diagonal sea util en la partida
+                if(valid){
+                    if (s.getPos(diagonal) == 1 && !(diagonalCount >= 2)) {
+                        heuristicValue += dynamicCosts(s, "diagonal");
+                        ++diagonalCount;
+                    }
+                    if (s.getPos(diagonal) == -1 && !(opDiagonalCount >= 2)) {
+                        heuristicValue += dynamicCosts(s, "diagonal");
+                        ++opDiagonalCount;
+                    }
                 }
             }
         }
@@ -215,188 +228,37 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
         
         return new PointDist(p, heuristicValue);
     }
-    
-    /*public static int center(HexGameStatus s) {
-    int size = s.getSize();
-    int centerX = size / 2;
-    int centerY = size / 2;
-    int[][] heuristicValues = generateCosts(s);
-    
-    // Ordenar las celdas por proximidad al centro y seleccionar las de mayor valor heurístico
-    PriorityQueue<Point> centerQueue = new PriorityQueue<>((a, b) -> {
-        int distA = Math.abs(a.x - centerX) + Math.abs(a.y - centerY);
-        int distB = Math.abs(b.x - centerX) + Math.abs(b.y - centerY);
-        return Integer.compare(distA, distB);
-    });
 
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            if (s.getPos(i, j) == 0) { // Solo considerar celdas vacías
-                centerQueue.add(new Point(i, j));
-            }
+    private static boolean validateDiagonal(Point d, Point p, HexGameStatus s){
+        boolean valid = true;
+        if(d == diagonals[0]){
+            if(s.getPos(p.x, p.y - 1) == -(s.getCurrentPlayerColor()) 
+               && s.getPos(p.x + 1, p.y - 1) == -(s.getCurrentPlayerColor())) valid = false;
         }
-    }
-
-    int totalHeuristic = 0;
-    while (!centerQueue.isEmpty()) {
-        Point p = centerQueue.poll();
-        totalHeuristic += heuristicValues[p.x][p.y];
-    }
-
-    return totalHeuristic;
-}*/
-
-    
- /*public static PointDist h(HexGameStatus s, Point currentPoint) {
-    int size = s.getSize();
-    int[][] costs = generateCosts(s);
-    PlayerType player = s.getCurrentPlayer();
-
-    int pathScore = 0; // Puntaje adicional para conectar con otras fichas
-    int minDistance = Integer.MAX_VALUE;
-
-    if (player == PlayerType.PLAYER1) { // Conectar arriba-abajo
-        for (int row = 0; row < size; row++) {
-            PointDist dest = new PointDist(new Point(row, size - 1), 0);
-            int distance = dijkstra(costs, size, new PointDist(currentPoint, 0), dest, player);
-            if (distance < minDistance) {
-                minDistance = distance;
-            }
+        else if(d == diagonals[1]){
+            if(s.getPos(p.x + 1, p.y - 1) == -(s.getCurrentPlayerColor()) 
+               && s.getPos(p.x + 1, p.y) == -(s.getCurrentPlayerColor())) valid = false;
         }
-    } else { // Conectar izquierda-derecha
-        for (int col = 0; col < size; col++) {
-            PointDist dest = new PointDist(new Point(size - 1, col), 0);
-            int distance = dijkstra(costs, size, new PointDist(currentPoint, 0), dest, player);
-            if (distance < minDistance) {
-                minDistance = distance;
-            }
+        else if(d == diagonals[2]){
+            if(s.getPos(p.x + 1, p.y) == -(s.getCurrentPlayerColor()) 
+               && s.getPos(p.x, p.y + 1) == -(s.getCurrentPlayerColor())) valid = false;
         }
-    }
-
-    // Evaluar conexión con otras fichas del jugador
-    List<Point> neighbors = getNeighbors(currentPoint.x, currentPoint.y, size);
-    for (Point neighbor : neighbors) {
-        if (s.getPos(neighbor.x, neighbor.y) == (player == PlayerType.PLAYER1 ? 1 : 2)) {
-            pathScore -= 5; // Incentivar conexión con fichas propias
+        else if(d == diagonals[3]){
+            if(s.getPos(p.x, p.y + 1) == -(s.getCurrentPlayerColor()) 
+               && s.getPos(p.x - 1, p.y + 1) == -(s.getCurrentPlayerColor())) valid = false;
         }
-    }
-
-    // Devolver heurística combinada
-    return new PointDist(currentPoint, minDistance + pathScore);
-}*/
-/*
-public static PointDist h(HexGameStatus s, Point currentPoint) {
-    int size = s.getSize();
-    int centerX = size / 2;
-    int centerY = size / 2;
-    
-    int[][] costs = generateCosts(s);
-    PlayerType player = s.getCurrentPlayer();
-    int pathScore = 0; // Puntaje adicional para conectar con otras fichas
-    int minDistance = Integer.MAX_VALUE;
-
-    // Calcular distancia Manhattan al centro del tablero
-    int distanceToCenter = Math.abs(currentPoint.x - centerX) + Math.abs(currentPoint.y - centerY);
-    // Asignar mayor puntuación a los puntos más cercanos al centro
-    int heuristicValue = dynamicCosts(s, "center") * (-distanceToCenter);
-    
-    if (player == PlayerType.PLAYER1) { // Conectar arriba-abajo
-        for (int row = 0; row < size; row++) {
-            PointDist dest = new PointDist(new Point(row, size - 1), 0);
-            int distance = dijkstra(costs, size, new PointDist(currentPoint, 0), dest, player);
-            if (distance < minDistance) {
-                minDistance = distance;
-            }
+        else if(d == diagonals[4]){
+            if(s.getPos(p.x - 1, p.y + 1) == -(s.getCurrentPlayerColor()) 
+               && s.getPos(p.x - 1, p.y) == -(s.getCurrentPlayerColor())) valid = false;
         }
-    } else { // Conectar izquierda-derecha
-        for (int col = 0; col < size; col++) {
-            PointDist dest = new PointDist(new Point(size - 1, col), 0);
-            int distance = dijkstra(costs, size, new PointDist(currentPoint, 0), dest, player);
-            if (distance < minDistance) {
-                minDistance = distance;
-            }
+        else if(d == diagonals[5]){
+            if(s.getPos(p.x - 1, p.y) == -(s.getCurrentPlayerColor()) 
+               && s.getPos(p.x, p.y - 1) == -(s.getCurrentPlayerColor())) valid = false;
         }
-    }
-    // Evaluar conexión con otras fichas del jugador
-    List<Point> neighbors = getNeighbors(currentPoint.x, currentPoint.y, size);
-    for (Point neighbor : neighbors) {
-        if (s.getPos(neighbor.x, neighbor.y) == (player == PlayerType.PLAYER1 ? 1 : 2)) {
-            pathScore -= dynamicCosts(s, "connection"); // Incentivar conexión con fichas propias
-        }
-    }
-    
-    heuristicValue -= minDistance * dynamicCosts(s, "distance");
-    heuristicValue -= pathScore;
-            
-    for (Point d : diagonals) {
-        Point diagonal = new Point(currentPoint.x + d.x, currentPoint.y + d.y);
-
-        // Validar directamente en el bucle
-        if (diagonal.x >= 0 && diagonal.x < s.getSize() &&
-            diagonal.y >= 0 && diagonal.y < s.getSize())
-        {
-            if (s.getPos(diagonal) == s.getCurrentPlayerColor()) {
-                heuristicValue -= dynamicCosts(s, "diagonal");
-            }
-        }
-    }
-    
-    //Blocking opponent
-    int opMinDist = Integer.MAX_VALUE;
-    PlayerType op = (player == PlayerType.PLAYER1) ? PlayerType.PLAYER2 : PlayerType.PLAYER1;
-    int[][] opCosts = generateCostsOp(s, op);
-    
-    if(op == PlayerType.PLAYER1) //bloqueamos de arriba-abajo
-    {
-        for (int row = 0; row < size; row++) {
-                PointDist dest = new PointDist(new Point(row, size - 1), 0);
-                int distance = dijkstra(opCosts, size, new PointDist(currentPoint, 0), dest, op);
-                if (distance < opMinDist) {
-                    opMinDist = distance;
-                }
-            }
-    } 
-    else // Bloquear izquierda-derecha
-    { 
-        for (int col = 0; col < size; col++) 
-        {
-            PointDist dest = new PointDist(new Point(size - 1, col), 0);
-            int distance = dijkstra(opCosts, size, new PointDist(currentPoint, 0), dest, op);
-            if (distance < opMinDist)  opMinDist = distance;
-        }
-    }
-    
-    heuristicValue += opMinDist * dynamicCosts(s, "block");
-    
-    int VirtualcConnections = identifyVC(s, currentPoint, player) /2; //Reducimos su bonus
-    heuristicValue += VirtualcConnections;
-    return new PointDist(currentPoint, heuristicValue);
-}
-
-    private static int identifyVC(HexGameStatus s, Point current, PlayerType player)
-    {
-        int size = s.getSize();
-        Set<Point> visited = new HashSet<>();
-        List<Point> border = new ArrayList<>();
-        border.add(current);
-        int VCScore = 0;
         
-        while(!border.isEmpty())
-        {
-            Point p = border.remove(0);
-            visited.add(p);
-            
-            for(Point neighbor : getNeighbors(p.x, p.y, size))
-            {
-                if(!visited.contains(neighbor) && s.getPos(neighbor.x, neighbor.y) == 0)
-                    border.add(neighbor);
-                else if(s.getPos(neighbor.x, neighbor.y) == (player == PlayerType.PLAYER1 ? 1 : -1))
-                    VCScore += dynamicCosts(s, "virtualConnection");
-            }
-        }
-        return VCScore;
+        return valid;
     }
-    */
+    
     private static int[][] generateCosts(HexGameStatus s)
     {
        int size = s.getSize();
@@ -418,28 +280,6 @@ public static PointDist h(HexGameStatus s, Point currentPoint) {
        return costs;
     }
 
-    private static int[][] generateCostsOp(HexGameStatus s, PlayerType player)
-    {
-        int size = s.getSize();
-        int my = (player == PlayerType.PLAYER2) ? -1 : 1;
-        int op = -my;
-        
-        int costs[][] = new int[size][size];
-        for(int i = 0; i < size; i++)
-        {
-            for(int j = 0; j < size; j++)
-            {
-                int cell = s.getPos(i, j);
-                if(cell == my) costs[i][j] = 0;
-                else if(cell == op) costs[i][j] = 100000;
-                else costs[i][j] = 1;
-            }
-        }
-        return costs;
-    }
-    
-
-    
     private static List<Point> getNeighbors(int x, int y, int size)
     {
         int[] directionX = {-1, -1, 0, 0, 1, 1};
@@ -457,11 +297,14 @@ public static PointDist h(HexGameStatus s, Point currentPoint) {
         return neighbors;
     }
     
+    
+    //Falta retocar
     private static int dynamicCosts(HexGameStatus s, String type)
     {
         int movesDone = calculateMovesBoard(s);
         int size = s.getSize();
         int gamePhase = movesDone < (size * size / 3) ? 0 : (movesDone < (2 * size * size / 3) ? 1 : 2);
+        
         
         switch(type)
         {
@@ -470,9 +313,9 @@ public static PointDist h(HexGameStatus s, Point currentPoint) {
             case "distance":
                 return (gamePhase == 0) ? 1 : (gamePhase == 1) ? 5 : 10;
             case "connection":
-                return (gamePhase == 0) ? 5 : (gamePhase == 1) ? 10 : 15;
+                return (gamePhase == 0) ? 2 : (gamePhase == 1) ? 10 : 15;
             case "diagonal":
-                return 15;
+                return 20;
             case "block":
                 return (gamePhase == 0) ? 15 : (gamePhase == 1) ? 15 : 10;
             case "virtualConnection":
@@ -493,15 +336,6 @@ public static PointDist h(HexGameStatus s, Point currentPoint) {
         }
         return count;
     }
-    
-    /*
-    
-    private static int shortestPath(int[][] costs, PlayerType player, int size)
-    {
-        
-    }
-    
-    */
     
     public static void printDistances(int[][] distances, int size) {
     System.out.println("Final distances:");
