@@ -22,13 +22,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 /**
- *
+ * Clase que sirve para almacenar un "shortest path" de dijkstra
  * @author marc
  */
 public class dijkstraResult {
-    int _cost;
-    List<PointDist> _shortestPath;
+    int _cost; //distancia minima restante para llegar a conectar de extremo a extremo
+    List<PointDist> _shortestPath; //lista con todos los puntos que conforman el camino más corto
     
+    /**
+     * Constructora de dijkstraResult
+     * @param cost 
+     * @param path 
+     */
     public dijkstraResult(int cost, List<PointDist> path)
     {
         this._cost = cost;
