@@ -29,15 +29,19 @@ public class Game {
                 
                 //IPlayer player1 = new RandomPlayer("perdedor");
                 
-                //IPlayer player2 = new H_E_X_Player(2/*GB*/);
+                IPlayer player2 = new H_E_X_Player(2/*GB*/);
                 
-                  IPlayer player1 = new HumanPlayer("Human");
+                //IPlayer player2 = new RandomPlayer("perdedor");
                 
-                //IPlayer player1 = new MyPlayer("Winner", 4, true);
+                //IPlayer player1 = new HumanPlayer("Human");
                 
-                IPlayer player2 = new MyPlayer("Winner", 4, true);
+                //IPlayer player2 = new HumanPlayer("Human");
+                
+                IPlayer player1 = new MyPlayer("Winner", 4, true);
+                
+                //IPlayer player2 = new MyPlayer("Winner", 8, true);
                                 
-                new Board(player1 , player2,11 /*mida*/,  10/*s*/, false);
+                new Board(player1 , player2, 11/*mida*/,  5/*s*/, false);
              }
         });
     }

@@ -28,6 +28,7 @@ import java.util.Random;
 public class MyPlayer implements IPlayer, IAuto {
 
     //Atributos de la clase
+    private boolean _firstmove = true;
     private String _name; //Nombre del jugador
     private long _exploredNodes; // Contador de los nodos explorados
     private boolean _IDS; //Indicador de si la busqueda es con IDS o no
@@ -59,26 +60,35 @@ public class MyPlayer implements IPlayer, IAuto {
      */
     @Override
 public PlayerMove move(HexGameStatus s) {
-    _exploredNodes = 0;
-    _timeout = false;
-    _myPlayer = s.getCurrentPlayer();
-    if(_table == null) initZbTable(s.getSize());
-    
-    List<PointDist> possibleMoves = getPossibleMoves(s);
-    for(int i = 0; i < possibleMoves.size(); i++) 
-    if(possibleMoves.isEmpty()) return new PlayerMove(
-                                                null,
-                                                _exploredNodes,
-                                                _depth,
-                                                SearchType.MINIMAX);
-    
-    
-    if(_IDS) 
-    {
-        PlayerMove move = IDSearch(s, possibleMoves);
-        return move;
-    }
-    else return new PlayerMove(search(s, possibleMoves)._point, _exploredNodes, _depth, SearchType.MINIMAX);
+    if(_firstmove){
+        _firstmove = false;
+        if(s.getCurrentPlayerColor() == 1){
+            return new PlayerMove(new Point(1, s.getSize()-3), _exploredNodes, _depth, null);
+        }else{
+            return new PlayerMove(new Point(s.getSize()-3, 1), _exploredNodes, _depth, null);
+        }
+    } else{
+        _exploredNodes = 0;
+        _timeout = false;
+        _myPlayer = s.getCurrentPlayer();
+        if(_table == null) initZbTable(s.getSize());
+
+        List<PointDist> possibleMoves = getPossibleMoves(s);
+        for(int i = 0; i < possibleMoves.size(); i++) 
+        if(possibleMoves.isEmpty()) return new PlayerMove(
+                                                    null,
+                                                    _exploredNodes,
+                                                    _depth,
+                                                    SearchType.MINIMAX);
+
+
+        if(_IDS) 
+        {
+            PlayerMove move = IDSearch(s, possibleMoves);
+            return move;
+        }
+        else return new PlayerMove(search(s, possibleMoves)._point, _exploredNodes, _depth, SearchType.MINIMAX);
+    }   
 }
 
 
@@ -286,7 +296,7 @@ private List<PointDist> getPossibleMoves(HexGameStatus s) {
     {
         for(int j = 0; j < s.getSize(); j++)
         {
-            if(s.getPos(i,j) == 0)
+            if(s.getPos(i,j) == 0 && possibleMoves.size() < 80)
             {
                 Point current = new Point(i,j);
                 PointDist hResult = Heuristic.h2(s, current);
