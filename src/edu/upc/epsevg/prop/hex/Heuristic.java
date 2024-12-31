@@ -214,7 +214,7 @@ public class Heuristic {
         // Calcular distancia Manhattan al centro del tablero
         int distanceToCenter = Math.abs(p.x - centerX) + Math.abs(p.y - centerY);
         // Asignar mayor puntuación a los puntos más cercanos al centro
-        heuristicValue += dynamicCosts(s, "center", bestResult) * (-distanceToCenter);
+        heuristicValue += dynamicCosts(s, "center", bestResult) * (distanceToCenter);
         
         //Miramos si hay bridges posibles en la posición que miramos
         for (Point d : diagonals) {
@@ -235,7 +235,7 @@ public class Heuristic {
                     if (s.getPos(diagonal) == -1 && !(opDiagonalCount >= 2) && calculateMovesBoard(s) > 3) {
                         Point bridge = new Point(p.x + d.x, p.y + d.y); 
                         int distanceFactorBridge = calculateDistanceFactor(s, p, bridge);
-                        heuristicValue += dynamicCosts(s, "diagonal", bestResult) + distanceFactorBridge * 2;
+                        heuristicValue += dynamicCosts(s, "diagonal", bestResult) + distanceFactorBridge;
                         ++opDiagonalCount;
                     }
                 }
@@ -259,7 +259,15 @@ public class Heuristic {
             if (p.x + 1 < s.getSize() &&
             p.y -1 >= 0 && p.y + 1 < s.getSize()){
                 if((s.getPos(p.x + 1, p.y - 1) == 1 && s.getPos(p.x, p.y - 1) == -1)) heuristicValue += Integer.MAX_VALUE;
-                if((s.getPos(p.x + 1, p.y) == 1) && (s.getPos(p.x, p.y - 1) == -1)) heuristicValue += Integer.MAX_VALUE;
+                if((s.getPos(p.x + 1, p.y) == 1) && (s.getPos(p.x, p.y + 1) == -1)) heuristicValue += Integer.MAX_VALUE;
+            }
+        }
+        
+        if(p.y == 0){
+            if (p.x + 1 < s.getSize() && p.x - 1 >= 0 &&
+            p.y + 1 < s.getSize()){
+                if((s.getPos(p.x, p.y + 1) == -1 && s.getPos(p.x + 1, p.y) == 1)) heuristicValue += Integer.MAX_VALUE;
+                if((s.getPos(p.x - 1, p.y + 1) == -1) && (s.getPos(p.x - 1, p.y) == 1)) heuristicValue += Integer.MAX_VALUE;
             }
         }
         
@@ -392,7 +400,7 @@ public class Heuristic {
         if((s.getPos(p.x-1, p.y+1) == color && s.getPos(p.x+1, p.y) == color) &&
            (s.getPos(p.x, p.y+1) == -color)) bridgeConnection = true;
         if((s.getPos(p.x-1, p.y) == color && s.getPos(p.x+1, p.y-1) == color) &&
-           (s.getPos(p.x, p.y+1) == -color)) bridgeConnection = true;
+           (s.getPos(p.x, p.y-1) == -color)) bridgeConnection = true;
         
         //Bridge Diagonal Izquierda
         if((s.getPos(p.x, p.y-1) == color && s.getPos(p.x+1, p.y) == color) && 
