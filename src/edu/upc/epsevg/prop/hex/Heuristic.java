@@ -16,13 +16,19 @@ import java.util.List;
 import java.util.PriorityQueue;
 import org.w3c.dom.Node;
 /**
+ * La clase Heuristic implementa funcionalidades avanzadas para evaluar y optimizar
+ * el rendimiento en el juego Hex. Incluye algoritmos como Dijkstra para encontrar
+ * caminos óptimos y heurísticas para valorar movimientos estratégicos.
  *
- * @author marc
+ * @author Marc
  */
+
 public class Heuristic {
     //status
-    HexGameStatus _status;
-    PlayerType _player;
+    HexGameStatus _status; //Estado actual del tablero
+    PlayerType _player; //Tipo de jugador (PLAYER1 o PLAYER2)
+    
+    //constantes que representan las diagonales del tablero
     static Point[] diagonals = {
             new Point(1, -2),
             new Point(2, -1),
@@ -35,16 +41,12 @@ public class Heuristic {
     static int opDiagonalCount;
     static int connectionCount;
     static int opConnectionCount;
-    static int upBorderCounter;
-    static int downBorderCounter;
-    static int leftBorderCounter;
-    static int rightBorderCounter;
         
     /**
-     * Constructor
+     * Constructor de la clase Heuristic
      * 
-     * @param status
-     * @param player 
+     * @param status Estado actual del tablero
+     * @param player Jugador actual (PLAYER1 o PLAYER2)
      */
     public Heuristic(HexGameStatus status, PlayerType player)
     {
@@ -52,9 +54,12 @@ public class Heuristic {
         this._player = player;
     }
     
+    /**
+     * Constructor por defecto
+     */
     public Heuristic()
     {
-        
+        //inicialización vacía
     }
     
     public static dijkstraResult h_pruebas(HexGameStatus s, Point p) {
@@ -92,14 +97,14 @@ public class Heuristic {
     }
 
     /**
-     * Metodo que calcula el camino más corto en una matriz de costos desde un punto de origen (source) hasta un punto de destino (dest).
-     * 
-     * @param costs
-     * @param size
-     * @param source
-     * @param dest
-     * @param player
-     * @return 
+     * Algoritmo de Dijkstra para encontrar el camino más corto en una matriz de costos.
+     *
+     * @param costs Matriz de costos del tablero.
+     * @param size Tamaño del tablero.
+     * @param source Punto de inicio.
+     * @param dest Punto de destino.
+     * @param player Jugador actual.
+     * @return Resultado de Dijkstra, incluyendo el costo y el camino.
      */
     private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source, PointDist dest, PlayerType player) {
         int[][] distances = new int[size][size];
@@ -161,9 +166,10 @@ public class Heuristic {
     /**
      * Calcula el valor heurístico en un punto específico del tablero de HEX
      * 
-     * @param s
-     * @param p
-     * @return 
+     * @param s Estado actual del tablero
+     * @param p Punto que evaluamos en el tablero
+     * @return  Devuelve un objeto de la clase PointDist que tiene el coste de
+     *          la heurística en ese punto
      */
     public static PointDist h2(HexGameStatus s, Point p)
     {
@@ -267,8 +273,8 @@ public class Heuristic {
     /**
      * Identifica los movimientos criticos en el estado actual del tablero
      * 
-     * @param s
-     * @return 
+     * @param s Estado actual del tablero
+     * @return Lista de los puntos criticos en la situación actual del tablero
      */
     public static List<Point> identifyCriticalMoves(HexGameStatus s) {
         List<Point> criticalMoves = new ArrayList<>();
@@ -291,12 +297,13 @@ public class Heuristic {
     }
     
     /**
-     * Calcula un factor basado en la proximidad de dos puntos (p1 y p2) a los bordes del tablero
+     * Calcula un factor basado en la proximidad de dos puntos (p1 y p2)
+     * a los bordes del tablero
      * 
-     * @param s
-     * @param p1
-     * @param p2
-     * @return 
+     * @param s Estado actual del tablero
+     * @param p1 Punto de inicio de la comparación de proximidad
+     * @param p2 Punto de fin de la comparación de proximidad
+     * @return Int con el factor de la distancia entre ambos puntos
      */
     private static int calculateDistanceFactor(HexGameStatus s, Point p1, Point p2) {
         int size = s.getSize();
@@ -320,8 +327,8 @@ public class Heuristic {
     /**
      * Calcula la fase del juego dependiendo de las fichas que hay en el tablero.
      * 
-     * @param s
-     * @return 
+     * @param s Estado actual del tablero
+     * @return  Int que representa la fase del juego actual
      */
     private static int calculateGamePhase(HexGameStatus s) {
         int movesDone = calculateMovesBoard(s);
@@ -332,12 +339,13 @@ public class Heuristic {
     }
     
     /**
-     * Verifica que la diagonal (bridge) que se está revisando vaya a ser útil en el juego.
+     * Verifica que la diagonal (bridge) que se está revisando vaya a ser útil
+     * en el juego.
      * 
-     * @param d
-     * @param p
-     * @param s
-     * @return 
+     * @param d Punto en que se evalua la diagonal
+     * @param p Punto actual
+     * @param s Estado actual del tablero
+     * @return  Devuelve true si es una diagonal valida
      */
     private static boolean validateDiagonal(Point d, Point p, HexGameStatus s){
         boolean valid = true;
@@ -364,11 +372,12 @@ public class Heuristic {
     }
     
     /**
-     * Comprueba que una de las dos posiciones criticas del bridge está ocupada por el oponente
+     * Comprueba que una de las dos posiciones criticas del bridge está ocupada 
+     * por el oponente
      * 
-     * @param p
-     * @param s
-     * @return 
+     * @param p Punto sobre el que evaluamos
+     * @param s Estado actual del tablero
+     * @return  Devuelve true si debemos conectar el bridge 
      */
     private static boolean isBridgeConnection(Point p, HexGameStatus s){
         boolean bridgeConnection = false;
@@ -395,10 +404,11 @@ public class Heuristic {
     }
    
     /**
-     * Genera una matriz de costos que representa el estado actual del tablero para el jugador.
+     * Genera una matriz de costos que representa el estado actual del tablero 
+     * para el jugador.
      * 
-     * @param s
-     * @return 
+     * @param s Estado actual del tablero
+     * @return Matrix de costos
      */
     private static int[][] generateCosts(HexGameStatus s){
        int size = s.getSize();
@@ -421,12 +431,12 @@ public class Heuristic {
     }
 
     /**
-     * Devuelve todos los vecinos que tieneun punto.
+     * Devuelve todos los vecinos que tiene un punto.
      * 
-     * @param x
-     * @param y
-     * @param size
-     * @return 
+     * @param x Coordenada x
+     * @param y Coordenada y
+     * @param size Tamaño del tablero
+     * @return Lista de vecinos del punto con coordenadas x, y
      */
     private static List<Point> getNeighbors(int x, int y, int size)
     {
@@ -446,12 +456,13 @@ public class Heuristic {
     }
     
     /**
-     * Este método controla lo que se va a sumar en la heurística dependiendo de que estamos revisando y en que momento de partida estamos.
+     * Este método controla lo que se va a sumar en la heurística dependiendo
+     * de que estamos revisando y en que momento de partida estamos.
      * 
-     * @param s
-     * @param type
-     * @param d
-     * @return 
+     * @param s Estado actual del tablero
+     * @param type  Tipo de evaluación de heurística
+     * @param d Objeto de la clase dijkstraResult
+     * @return Int con el valor heurístico de ese tipo de evaluación
      */
     private static int dynamicCosts(HexGameStatus s, String type, dijkstraResult d)
     {
@@ -480,10 +491,11 @@ public class Heuristic {
     }
     
     /**
-     * Devuelve la cantidad de movimientos que se han realizado en total en un punto concreto de la partida.
+     * Devuelve la cantidad de movimientos que se han realizado en total
+     * en un punto concreto de la partida.
      * 
-     * @param s
-     * @return 
+     * @param s Estado actual del tablero
+     * @return  contador de fichas por todo el tablero
      */
     private static int calculateMovesBoard(HexGameStatus s)
     {
