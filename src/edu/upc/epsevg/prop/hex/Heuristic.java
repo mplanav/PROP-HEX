@@ -40,7 +40,12 @@ public class Heuristic {
     static int leftBorderCounter;
     static int rightBorderCounter;
         
-    
+    /**
+     * Constructor
+     * 
+     * @param status
+     * @param player 
+     */
     public Heuristic(HexGameStatus status, PlayerType player)
     {
         this._status = status;
@@ -52,107 +57,106 @@ public class Heuristic {
         
     }
     
-public static dijkstraResult h_pruebas(HexGameStatus s, Point p) {
-    int heuristicValue = 0;
-    int size = s.getSize();
-    int[][] costs = generateCosts(s); // Generar costos del tablero
-    int minDistance = Integer.MAX_VALUE;
-    dijkstraResult bestResult = null; // Para almacenar el mejor resultado
+    public static dijkstraResult h_pruebas(HexGameStatus s, Point p) {
+        int heuristicValue = 0;
+        int size = s.getSize();
+        int[][] costs = generateCosts(s); // Generar costos del tablero
+        int minDistance = Integer.MAX_VALUE;
+        dijkstraResult bestResult = null; // Para almacenar el mejor resultado
 
-    if (s.getCurrentPlayer() == PlayerType.PLAYER2) { // Conectar arriba-abajo
-        for (int row = 0; row < size; row++) {
-            PointDist dest = new PointDist(new Point(row, size - 1), 0);
-            dijkstraResult result = dijkstra(costs, size, new PointDist(p, 0), dest, s.currentPlayer);
+        if (s.getCurrentPlayer() == PlayerType.PLAYER2) { // Conectar arriba-abajo
+            for (int row = 0; row < size; row++) {
+                PointDist dest = new PointDist(new Point(row, size - 1), 0);
+                dijkstraResult result = dijkstra(costs, size, new PointDist(p, 0), dest, s.currentPlayer);
 
-            // Evaluar si este camino es mejor
-            if (result._cost < minDistance) {
-                minDistance = result._cost;
-                bestResult = result; // Guardar el mejor camino
+                // Evaluar si este camino es mejor
+                if (result._cost < minDistance) {
+                    minDistance = result._cost;
+                    bestResult = result; // Guardar el mejor camino
+                }
             }
-        }
-    } else { // Conectar izquierda-derecha
-        for (int col = 0; col < size; col++) {
-            PointDist dest = new PointDist(new Point(size - 1, col), 0);
-            dijkstraResult result = dijkstra(costs, size, new PointDist(p, 0), dest, s.currentPlayer);
-            
-            // Evaluar si este camino es mejor
-            if (result._cost < minDistance) {
-                minDistance = result._cost;
-                bestResult = result; // Guardar el mejor camino del oponente
-            }
-        }
-    }
+        } else { // Conectar izquierda-derecha
+            for (int col = 0; col < size; col++) {
+                PointDist dest = new PointDist(new Point(size - 1, col), 0);
+                dijkstraResult result = dijkstra(costs, size, new PointDist(p, 0), dest, s.currentPlayer);
 
-    heuristicValue = minDistance;
-    return bestResult;
-}
-
-/**
- * Metodo que calcula el camino más corto en una matriz de costos desde un punto de origen (source) hasta un punto de destino (dest).
- * 
- * @param costs
- * @param size
- * @param source
- * @param dest
- * @param player
- * @return 
- */
-private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source, PointDist dest, PlayerType player) {
-    int[][] distances = new int[size][size];
-    boolean[][] visited = new boolean[size][size];
-    PointDist[][] prev = new PointDist[size][size];
-    PriorityQueue<PointDist> queue = new PriorityQueue<>(
-        (a, b) -> Integer.compare(distances[a._point.x][a._point.y], distances[b._point.x][b._point.y])
-    );
-
-    // Inicializar matrices
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            distances[i][j] = Integer.MAX_VALUE;
-            prev[i][j] = null;
-        }
-    }
-    distances[source._point.x][source._point.y] = 0;
-    queue.add(source);
-
-    while (!queue.isEmpty()) {
-        PointDist current = queue.poll();
-
-        if (current._point.equals(dest._point)) break; // Camino más corto encontrado
-        if (visited[current._point.x][current._point.y]) continue;
-        visited[current._point.x][current._point.y] = true;
-
-        // Explorar vecinos
-        for (Point nb : getNeighbors(current._point.x, current._point.y, size)) {
-            if (!visited[nb.x][nb.y] && costs[nb.x][nb.y] < 100000) {
-                int newCost = distances[current._point.x][current._point.y] + costs[nb.x][nb.y];
-                if (newCost < distances[nb.x][nb.y]) {
-                    distances[nb.x][nb.y] = newCost;
-                    prev[nb.x][nb.y] = current; // Guardar el nodo previo
-                    queue.add(new PointDist(nb, newCost));
+                // Evaluar si este camino es mejor
+                if (result._cost < minDistance) {
+                    minDistance = result._cost;
+                    bestResult = result; // Guardar el mejor camino del oponente
                 }
             }
         }
+        heuristicValue = minDistance;
+        return bestResult;
     }
 
-    // Reconstruir el camino más corto (solo puntos vacíos)
-    List<PointDist> path = new ArrayList<>();
-    PointDist step = new PointDist(dest._point, distances[dest._point.x][dest._point.y]);
-    if (prev[step._point.x][step._point.y] != null || step._point.equals(source._point)) {
-        while (step != null) {
-            // Filtrar solo celdas vacías (0)
-            if (costs[step._point.x][step._point.y] == 1) {
-                path.add(step);
+    /**
+     * Metodo que calcula el camino más corto en una matriz de costos desde un punto de origen (source) hasta un punto de destino (dest).
+     * 
+     * @param costs
+     * @param size
+     * @param source
+     * @param dest
+     * @param player
+     * @return 
+     */
+    private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source, PointDist dest, PlayerType player) {
+        int[][] distances = new int[size][size];
+        boolean[][] visited = new boolean[size][size];
+        PointDist[][] prev = new PointDist[size][size];
+        PriorityQueue<PointDist> queue = new PriorityQueue<>(
+            (a, b) -> Integer.compare(distances[a._point.x][a._point.y], distances[b._point.x][b._point.y])
+        );
+
+        // Inicializar matrices
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                distances[i][j] = Integer.MAX_VALUE;
+                prev[i][j] = null;
             }
-            step = prev[step._point.x][step._point.y];
         }
-        Collections.reverse(path); // Invertir para obtener el orden correcto
-    }
+        distances[source._point.x][source._point.y] = 0;
+        queue.add(source);
 
-    int cost = distances[dest._point.x][dest._point.y];
-    if (cost == Integer.MAX_VALUE) path.clear(); // Si no hay camino, devolver lista vacía
-    return new dijkstraResult(cost, path);
-}
+        while (!queue.isEmpty()) {
+            PointDist current = queue.poll();
+
+            if (current._point.equals(dest._point)) break; // Camino más corto encontrado
+            if (visited[current._point.x][current._point.y]) continue;
+            visited[current._point.x][current._point.y] = true;
+
+            // Explorar vecinos
+            for (Point nb : getNeighbors(current._point.x, current._point.y, size)) {
+                if (!visited[nb.x][nb.y] && costs[nb.x][nb.y] < 100000) {
+                    int newCost = distances[current._point.x][current._point.y] + costs[nb.x][nb.y];
+                    if (newCost < distances[nb.x][nb.y]) {
+                        distances[nb.x][nb.y] = newCost;
+                        prev[nb.x][nb.y] = current; // Guardar el nodo previo
+                        queue.add(new PointDist(nb, newCost));
+                    }
+                }
+            }
+        }
+
+        // Reconstruir el camino más corto (solo puntos vacíos)
+        List<PointDist> path = new ArrayList<>();
+        PointDist step = new PointDist(dest._point, distances[dest._point.x][dest._point.y]);
+        if (prev[step._point.x][step._point.y] != null || step._point.equals(source._point)) {
+            while (step != null) {
+                // Filtrar solo celdas vacías (0)
+                if (costs[step._point.x][step._point.y] == 1) {
+                    path.add(step);
+                }
+                step = prev[step._point.x][step._point.y];
+            }
+            Collections.reverse(path); // Invertir para obtener el orden correcto
+        }
+
+        int cost = distances[dest._point.x][dest._point.y];
+        if (cost == Integer.MAX_VALUE) path.clear(); // Si no hay camino, devolver lista vacía
+        return new dijkstraResult(cost, path);
+    }
 
     /**
      * Calcula el valor heurístico en un punto específico del tablero de HEX
@@ -396,8 +400,7 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
      * @param s
      * @return 
      */
-    private static int[][] generateCosts(HexGameStatus s)
-    {
+    private static int[][] generateCosts(HexGameStatus s){
        int size = s.getSize();
        PlayerType player = s.getCurrentPlayer();
        int my = (player == PlayerType.PLAYER2) ? -1 : 1;
@@ -493,6 +496,5 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
             }
         }
         return count;
-    }
-    
+    }    
 }
