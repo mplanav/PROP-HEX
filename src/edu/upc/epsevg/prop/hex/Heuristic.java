@@ -214,8 +214,7 @@ public class Heuristic {
         // Calcular distancia Manhattan al centro del tablero
         int distanceToCenter = Math.abs(p.x - centerX) + Math.abs(p.y - centerY);
         // Asignar mayor puntuación a los puntos más cercanos al centro
-        heuristicValue += dynamicCosts(s, "center", bestResult) * (distanceToCenter);
-        
+        heuristicValue += dynamicCosts(s, "center", bestResult) * -(distanceToCenter);
         //Miramos si hay bridges posibles en la posición que miramos
         for (Point d : diagonals) {
             Point diagonal = new Point(p.x + d.x, p.y + d.y);
@@ -238,7 +237,7 @@ public class Heuristic {
                         heuristicValue += dynamicCosts(s, "diagonal", bestResult) + distanceFactorBridge;
                         ++opDiagonalCount;
                     }
-                }
+                }   
             }
         }
 
@@ -252,31 +251,20 @@ public class Heuristic {
         
         if (p.x - 1 >= 0 && p.x + 1 < s.getSize() &&
             p.y -1 >= 0 && p.y + 1 < s.getSize()){
-                    if(isBridgeConnection(p, s)) heuristicValue += Integer.MAX_VALUE;
+                    if(isBridgeConnection(p, s)) return new PointDist(p, Integer.MAX_VALUE);
         }
         
         if(p.x == 0){
             if (p.x + 1 < s.getSize() &&
             p.y -1 >= 0 && p.y + 1 < s.getSize()){
                 if((s.getPos(p.x + 1, p.y - 1) == 1 && s.getPos(p.x, p.y - 1) == -1)) heuristicValue += Integer.MAX_VALUE;
-                if((s.getPos(p.x + 1, p.y) == 1) && (s.getPos(p.x, p.y + 1) == -1)) heuristicValue += Integer.MAX_VALUE;
+                if((s.getPos(p.x + 1, p.y) == 1) && (s.getPos(p.x, p.y - 1) == -1)) heuristicValue += Integer.MAX_VALUE;
             }
         }
         
-        if(p.y == 0){
-            if (p.x + 1 < s.getSize() && p.x - 1 >= 0 &&
-            p.y + 1 < s.getSize()){
-                if((s.getPos(p.x, p.y + 1) == -1 && s.getPos(p.x + 1, p.y) == 1)) heuristicValue += Integer.MAX_VALUE;
-                if((s.getPos(p.x - 1, p.y + 1) == -1) && (s.getPos(p.x - 1, p.y) == 1)) heuristicValue += Integer.MAX_VALUE;
-            }
-        }
-        
-        for(Point c : identifyCriticalMoves(s)){
-            if(p == c) heuristicValue += 10;
-        }
-        
+                
         return new PointDist(p, heuristicValue);
-    }
+    } 
 
     /**
      * Identifica los movimientos criticos en el estado actual del tablero
@@ -377,6 +365,17 @@ public class Heuristic {
         }
         
         return valid;
+    }
+    
+    /**
+     * Verifica si un punto está dentro de los límites del tablero.
+     *
+     * @param p Punto a verificar
+     * @param size Tamaño del tablero
+     * @return true si el punto está dentro de los límites, false en caso contrario
+     */
+    private static boolean isValidPosition(Point p, int size) {
+        return p.x >= 0 && p.x < size && p.y >= 0 && p.y < size;
     }
     
     /**

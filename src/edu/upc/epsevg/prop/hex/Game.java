@@ -33,11 +33,11 @@ public class Game {
                 
                 //IPlayer player2 = new RandomPlayer("perdedor");
                 
-                IPlayer player1 = new HumanPlayer("Human");
+                //IPlayer player1 = new HumanPlayer("Human");
                 
                 //IPlayer player2 = new HumanPlayer("Human");
                 
-                //IPlayer player1 = new MyPlayer("Winner", 4, true);
+                IPlayer player1 = new MyPlayer("Winner", 4, true);
                 
                 //IPlayer player2 = new MyPlayer("Winner", 8, true);
                                 
