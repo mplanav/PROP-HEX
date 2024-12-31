@@ -86,7 +86,17 @@ public static dijkstraResult h_pruebas(HexGameStatus s, Point p) {
     heuristicValue = minDistance;
     return bestResult;
 }
-    
+
+/**
+ * Metodo que calcula el camino más corto en una matriz de costos desde un punto de origen (source) hasta un punto de destino (dest).
+ * 
+ * @param costs
+ * @param size
+ * @param source
+ * @param dest
+ * @param player
+ * @return 
+ */
 private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source, PointDist dest, PlayerType player) {
     int[][] distances = new int[size][size];
     boolean[][] visited = new boolean[size][size];
@@ -144,6 +154,13 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
     return new dijkstraResult(cost, path);
 }
 
+    /**
+     * Calcula el valor heurístico en un punto específico del tablero de HEX
+     * 
+     * @param s
+     * @param p
+     * @return 
+     */
     public static PointDist h2(HexGameStatus s, Point p)
     {
         diagonalCount = 0;
@@ -182,7 +199,7 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
                 }
             }
         }
-        heuristicValue += minDistance * -25;
+        heuristicValue += minDistance * 25;
 
         // Calcular distancia Manhattan al centro del tablero
         int distanceToCenter = Math.abs(p.x - centerX) + Math.abs(p.y - centerY);
@@ -200,43 +217,21 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
                 boolean valid = validateDiagonal(d, p, s); //Se comprueba que la diagonal sea util en la partida
                 if(valid){
                     if (s.getPos(diagonal) == 1 && !(diagonalCount >= 3)) {
-                        heuristicValue += dynamicCosts(s, "diagonal", bestResult);
+                        Point bridge = new Point(p.x + d.x, p.y + d.y); 
+                        int distanceFactorBridge = calculateDistanceFactor(s, p, bridge);
+                        heuristicValue += dynamicCosts(s, "diagonal", bestResult) + distanceFactorBridge;
                         ++diagonalCount;
                     }
-                    if (s.getPos(diagonal) == -1 && !(opDiagonalCount >= 3)) {
-                        heuristicValue += dynamicCosts(s, "diagonal", bestResult);
+                    if (s.getPos(diagonal) == -1 && !(opDiagonalCount >= 2) && calculateMovesBoard(s) > 3) {
+                        Point bridge = new Point(p.x + d.x, p.y + d.y); 
+                        int distanceFactorBridge = calculateDistanceFactor(s, p, bridge);
+                        heuristicValue += dynamicCosts(s, "diagonal", bestResult) + distanceFactorBridge * 2;
                         ++opDiagonalCount;
                     }
                 }
             }
         }
-        
-        if(p.x == 0 || p.y == 0 || p.x == size-1 || p.y == size-1){
-            leftBorderCounter = 0;
-            rightBorderCounter = 0;   
-            upBorderCounter = 0;
-            downBorderCounter = 0;
-            if(s.getCurrentPlayer() == PlayerType.PLAYER1){
-                for(int i = 0; i < size; i++){
-                    if(s.getPos(0, i) == s.getCurrentPlayerColor()) ++leftBorderCounter;
-                }
-                if(leftBorderCounter < 2)heuristicValue += (size-leftBorderCounter) * dynamicCosts(s, "border", bestResult);
-                for(int i = 0; i < size; i++){
-                    if(s.getPos(0, i) == s.getCurrentPlayerColor()) ++rightBorderCounter;
-                }
-                if(rightBorderCounter < 2)heuristicValue += (size-rightBorderCounter) * dynamicCosts(s, "border", bestResult);
-            } else{
-                for(int i = 0; i < size; i++){
-                    if(s.getPos(i, 0) == s.getCurrentPlayerColor()) ++upBorderCounter;
-                }
-                if(upBorderCounter < 2)heuristicValue += (size-upBorderCounter) * dynamicCosts(s, "border", bestResult);
-                for(int i = 0; i < size; i++){
-                    if(s.getPos(i, 0) == s.getCurrentPlayerColor()) ++downBorderCounter;
-                }
-                if(downBorderCounter < 2)heuristicValue += (size-downBorderCounter) * dynamicCosts(s, "border", bestResult);
-            }  
-        }
-        
+
         List<Point> neighbors = getNeighbors(p.x, p.y, size);
         for (Point neighbor : neighbors){
             if (s.getPos(neighbor.x, neighbor.y) == 1 && connectionCount < 3) ++connectionCount;
@@ -247,36 +242,30 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
         
         if (p.x - 1 >= 0 && p.x + 1 < s.getSize() &&
             p.y -1 >= 0 && p.y + 1 < s.getSize()){
-                    if(isBridgeConnection(p, s)) heuristicValue += 100;
+                    if(isBridgeConnection(p, s)) heuristicValue += Integer.MAX_VALUE;
         }
-        /*
-        for (Point criticalMove : identifyCriticalMoves(s)) {
-            if(p == criticalMove)heuristicValue += Integer.MAX_VALUE;
+        
+        if(p.x == 0){
+            if (p.x + 1 < s.getSize() &&
+            p.y -1 >= 0 && p.y + 1 < s.getSize()){
+                if((s.getPos(p.x + 1, p.y - 1) == 1 && s.getPos(p.x, p.y - 1) == -1)) heuristicValue += Integer.MAX_VALUE;
+                if((s.getPos(p.x + 1, p.y) == 1) && (s.getPos(p.x, p.y - 1) == -1)) heuristicValue += Integer.MAX_VALUE;
+            }
         }
-        */
-        //return new PointDist(p, minDistance);
+        
+        for(Point c : identifyCriticalMoves(s)){
+            if(p == c) heuristicValue += 10;
+        }
+        
         return new PointDist(p, heuristicValue);
     }
 
-    /*
-        //Comprobamos las conexiones directas de la posición que miramos
-        List<Point> neighbors = getNeighbors(p.x, p.y, size);
-        for (Point neighbor : neighbors){
-            if (s.getPos(neighbor.x, neighbor.y) == 1 && !(connectionCount >= 2)) {
-                ++connectionCount;
-                if (p.x - 1 >= 0 && p.x + 1 < s.getSize() &&
-                p.y -1 >= 0 && p.y + 1 < s.getSize()){
-                    if(isBridgeConnection(p, s)) heuristicValue += 25;
-                } 
-                heuristicValue += dynamicCosts(s, "connection"); // Incentivar conexión con fichas propias
-            }
-            if (s.getPos(neighbor.x, neighbor.y) == -1 && !(opConnectionCount >= 2)) {
-                ++opConnectionCount;
-                heuristicValue += dynamicCosts(s, "connection"); // Incentivar no conexión del oponente
-            }
-        }
-    */
-    
+    /**
+     * Identifica los movimientos criticos en el estado actual del tablero
+     * 
+     * @param s
+     * @return 
+     */
     public static List<Point> identifyCriticalMoves(HexGameStatus s) {
         List<Point> criticalMoves = new ArrayList<>();
         int size = s.getSize();
@@ -297,6 +286,55 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
         return criticalMoves;
     }
     
+    /**
+     * Calcula un factor basado en la proximidad de dos puntos (p1 y p2) a los bordes del tablero
+     * 
+     * @param s
+     * @param p1
+     * @param p2
+     * @return 
+     */
+    private static int calculateDistanceFactor(HexGameStatus s, Point p1, Point p2) {
+        int size = s.getSize();
+        PlayerType player = s.getCurrentPlayer();
+        int distanceToStart, distanceToEnd;
+
+        if (player == PlayerType.PLAYER2) {
+            distanceToStart = Math.min(p1.x, p2.x); // Distancia al borde superior
+            distanceToEnd = Math.min(size - 1 - p1.x, size - 1 - p2.x); // Distancia al borde inferior
+        } else {
+            distanceToStart = Math.min(p1.y, p2.y); // Distancia al borde izquierdo
+            distanceToEnd = Math.min(size - 1 - p1.y, size - 1 - p2.y); // Distancia al borde derecho
+        }
+
+        // Penalizar menos si está cerca del inicio o del final
+        int gamePhase = calculateGamePhase(s);
+        int weight = (gamePhase == 0) ? 20 : (gamePhase == 1 ? 10 : 5);
+        return weight * (size - Math.min(distanceToStart, distanceToEnd));
+    }
+    
+    /**
+     * Calcula la fase del juego dependiendo de las fichas que hay en el tablero.
+     * 
+     * @param s
+     * @return 
+     */
+    private static int calculateGamePhase(HexGameStatus s) {
+        int movesDone = calculateMovesBoard(s);
+        int size = s.getSize();
+        if (movesDone < size * size / 3) return 0; // Fase inicial
+        if (movesDone < 2 * size * size / 3) return 1; // Fase intermedia
+        return 2; // Fase final
+    }
+    
+    /**
+     * Verifica que la diagonal (bridge) que se está revisando vaya a ser útil en el juego.
+     * 
+     * @param d
+     * @param p
+     * @param s
+     * @return 
+     */
     private static boolean validateDiagonal(Point d, Point p, HexGameStatus s){
         boolean valid = true;
         if(d == diagonals[0]){
@@ -321,6 +359,13 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
         return valid;
     }
     
+    /**
+     * Comprueba que una de las dos posiciones criticas del bridge está ocupada por el oponente
+     * 
+     * @param p
+     * @param s
+     * @return 
+     */
     private static boolean isBridgeConnection(Point p, HexGameStatus s){
         boolean bridgeConnection = false;
         int color = s.getCurrentPlayerColor();
@@ -345,6 +390,12 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
         return bridgeConnection;
     }
    
+    /**
+     * Genera una matriz de costos que representa el estado actual del tablero para el jugador.
+     * 
+     * @param s
+     * @return 
+     */
     private static int[][] generateCosts(HexGameStatus s)
     {
        int size = s.getSize();
@@ -366,6 +417,14 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
        return costs;
     }
 
+    /**
+     * Devuelve todos los vecinos que tieneun punto.
+     * 
+     * @param x
+     * @param y
+     * @param size
+     * @return 
+     */
     private static List<Point> getNeighbors(int x, int y, int size)
     {
         int[] directionX = {-1, -1, 0, 0, 1, 1};
@@ -383,8 +442,14 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
         return neighbors;
     }
     
-    
-    //Falta retocar
+    /**
+     * Este método controla lo que se va a sumar en la heurística dependiendo de que estamos revisando y en que momento de partida estamos.
+     * 
+     * @param s
+     * @param type
+     * @param d
+     * @return 
+     */
     private static int dynamicCosts(HexGameStatus s, String type, dijkstraResult d)
     {
         int movesDone = calculateMovesBoard(s);
@@ -398,11 +463,11 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
         switch(type)
         {
             case "center":
-                return (goCenter == 0) ? 8 : 0;
+                return (goCenter == 0) ? 20 : 0;
             case "distance":
                 return (gamePhase == 1) ? 5 : 10;
             case "diagonal":
-                return (gamePhase == 1) ? 40 : 50;
+                return (gamePhase == 1) ? 30 : 40;
             case "border":
                 return (gamePhase == 1) ? 1 : 3;
             case "virtualConnection":
@@ -411,6 +476,12 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
         }
     }
     
+    /**
+     * Devuelve la cantidad de movimientos que se han realizado en total en un punto concreto de la partida.
+     * 
+     * @param s
+     * @return 
+     */
     private static int calculateMovesBoard(HexGameStatus s)
     {
         int count = 0; 
@@ -424,14 +495,4 @@ private static dijkstraResult dijkstra(int[][] costs, int size, PointDist source
         return count;
     }
     
-    public static void printDistances(int[][] distances, int size) {
-    System.out.println("Final distances:");
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            System.out.print((distances[i][j] == Integer.MAX_VALUE ? "INF" : distances[i][j]) + "\t");
-        }
-        System.out.println();
-    }
 }
-}
-   

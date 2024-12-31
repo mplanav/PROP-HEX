@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * @author Marc Plana y Víctor Rubio
+ * @author Marc Plana y Victor Rubio
  *  * 
  * La clase MyPlayer implementa un jugador para Hex, utiliza estrategias 
  * como Minimax con poda alfa-beta, Dijkstra o optimizaciones basadas en claves 
@@ -50,6 +50,7 @@ public class MyPlayer implements IPlayer, IAuto {
         this._name = name;
         this._depth = depth;
         this._IDS = IDS;
+        this. _firstmove = true;
     }
 
     /**
